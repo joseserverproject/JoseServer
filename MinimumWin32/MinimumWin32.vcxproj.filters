@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="SrcEssential">
+      <UniqueIdentifier>{3eab41ef-70bf-4771-8dbf-b98abe3cd819}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\SrcEssential\JS_Config.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_DataStructure.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_EventLoop.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_HttpMsg.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_HttpServer.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_Interface.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_OS.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_ThreadPool.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrcEssential\JS_Util.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MinimumWin32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_DataStructure_List.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_DataStructure_Map.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_DataStructure_Pool.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_DataStructure_Queue.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_EventLoop.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_HttpServer.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_Interface.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_ThreadPool.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_Util_Http.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_Util_Misc.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_Util_Network.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrcEssential\JS_Util_String.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="SrcEssential">
+      <UniqueIdentifier>{2c551bb6-da91-4ccf-9385-04aa7d38a6fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SrcAddon">
+      <UniqueIdentifier>{d0de56ef-c912-4e49-93f1-b5a48a692f6c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="targetver.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JS_DS_Test.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JS_Net_Test.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_AddonConfig.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_AddonExternal.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_AddonInternal.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_AjaxHelper.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_AutoTrafficControl.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_Cache.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_DataStructure_Multiqueue.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_MediaProxy.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_MediaProxyTurbo.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_SimpleDiscovery.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcAddon\JS_SimpleHttpClient.h">
+      <Filter>SrcAddon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_Config.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_DataStructure.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_EventLoop.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_HttpMsg.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_HttpServer.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_Interface.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_OS.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_ThreadPool.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\SrcEssential\JS_Util.h">
+      <Filter>SrcEssential</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="UnitTestApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="JS_DS_Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="JS_Net_Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_AjaxHelper.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_AutoTrafficControl.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_Cache.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_DataStructure_Multiqueue.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_MediaProxy.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_MediaProxyTurbo.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_SimpleDiscovery.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcAddon\JS_SimpleHttpClient.c">
+      <Filter>SrcAddon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_DataStructure_List.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_DataStructure_Map.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_DataStructure_Pool.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_DataStructure_Queue.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_EventLoop.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_HttpServer.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_Interface.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_ThreadPool.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_Util_Http.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_Util_Misc.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_Util_Network.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\SrcEssential\JS_Util_String.c">
+      <Filter>SrcEssential</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

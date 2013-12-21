@@ -1,0 +1,102 @@
+<html>
+ <head>
+    <title>ControlPannel</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=10.000" >
+	<meta charset="utf-8">
+    <link rel="stylesheet" href="jquery.mobile-1.3.2.min.css" />
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="jquery.mobile-1.3.2.min.js"></script>
+	<script language="javascript">
+		var nTurboProxy = 0;
+		var defaultURLPrefix = "";
+		var timerCheckConnection = null;
+		var nOldContNum = 4;
+		var nOldUAOption = 0;
+		function js_on_start() {
+			defaultURLPrefix = "http://" + document.location.host;
+			timerCheckConnection = setInterval('js_check_connectionnumber()',3001);
+		}
+		function js_check_connectionnumber() {
+			var nCont = $("#contnum").val();
+			if(nCont != nOldContNum) {
+				$.ajax({
+				  type: 'GET',
+				  url: defaultURLPrefix+"/proxycmd",
+				  data: {
+					cmd: "changemax",
+					connection: nCont,
+					cacheclear: Math.random()
+				  },
+				  dataType: "json",
+				  success: function(json) {
+					nOldContNum = nCont;
+					$("#spanstatus").text("Connection Number is "+nCont);
+				  }
+				});				
+			}
+		}
+		function js_change_ua() {
+			var nOption = 0;
+			if(nOldUAOption==0) {
+				nOption = 1;
+				$("#btnuachange  span.ui-btn-text").text("Unfix UA");
+			}else {
+				nOption = 0;
+				$("#btnuachange  span.ui-btn-text").text("Fix UA");
+			}
+			nOldUAOption = nOption;
+			$.ajax({
+			  type: 'GET',
+			  url: defaultURLPrefix+"/proxycmd",
+			  data: {
+				cmd: "changeua",
+				option: nOption,
+				cacheclear: Math.random()
+			  },
+			  dataType: "json"
+			});				
+		}
+		function js_change_turboproxy() {
+			var strCmd;
+			if(nTurboProxy==0) {
+				strCmd = "startproxy";
+				nTurboProxy = 1;
+				$("#btnproxystart  span.ui-btn-text").text("Stop Proxy");
+			}else {
+				nTurboProxy = 0;
+				strCmd = "stopproxy";
+				$("#btnproxystart  span.ui-btn-text").text("Start Proxy");
+			}		
+			$.ajax({
+			  type: 'GET',
+			  url: defaultURLPrefix+"/proxycmd",
+			  data: {
+				cmd: strCmd,
+				cacheclear: Math.random()
+			  },
+			  dataType: "json",
+			  success: function(json) {
+				;
+			  }
+			});			
+		}
+	</script>
+</head>
+<body onload="javascript:js_on_start();">
+<div data-role="content" id="contentlist">
+<!--INPSTART-->
+<form action='#' method='get'> 
+<div data-role='fieldcontain'> 
+<a href='#' rel='external' onclick='js_change_turboproxy();' data-role='button' id='btnproxystart'>Start Proxy</a> 
+</div> 
+<div data-role='fieldcontain'> 
+<label for="slider-1">Max Connection Number</label>
+<input type="range" name="slider-1" id="contnum" value="4" min="1" max="12" />
+<a href='#' rel='external' onclick='js_change_ua();' data-role='button' id='btnuachange'>Fix UA</a> 
+</div> 
+<div data-role='fieldcontain'> 
+<h2>Status</h2>
+<p><span id='spanstatus'>Connection: 4</span></p>
+</div>
+</body>
+</html>
