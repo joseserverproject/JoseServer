@@ -60,7 +60,7 @@ Last-Modified: %s\r\n\
 ETag: %s\r\n\
 Accept-Ranges: bytes\r\n\
 Content-Length: %llu\r\n\
-Connection: Keep-Alive\r\n\
+Connection: Close\r\n\
 Content-Type: %s\r\n\r\n"
 
 #define JS_HTTPSERVER_PARTIAL_OK_TEMPLATE	"HTTP/1.1 206 OK\r\n\
@@ -70,7 +70,7 @@ Last-Modified: %s\r\n\
 ETag: %s\r\n\
 Accept-Ranges: bytes\r\n\
 Content-Range: bytes=%llu-%llu\r\n\
-Connection: Keep-Alive\r\n\
+Connection: Close\r\n\
 Content-Type: %s\r\n\r\n"
 
 #define JS_HTTPSERVER_ERROR_HEADER_TEMPLATE	"HTTP/1.1 %d %s\r\n\
