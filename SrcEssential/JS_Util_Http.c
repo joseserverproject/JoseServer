@@ -454,7 +454,17 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 			if(pBuffer[0]=='h' && pBuffer[1]=='t' && pBuffer[2]=='t'&& pBuffer[3]=='p') {
 				pURL = JS_UTIL_StrDup(pBuffer);
 			}else {
+				int nRedirectIndex;
 				pRes = JS_UTIL_StrDup(pBuffer);
+				nRedirectIndex = JS_UTIL_FindPattern(pRes,"turbogate211?url=",0,16,0);
+				if(nRedirectIndex>=0) {
+					int nStrLen = strlen(pRes);
+					pRedirectURL = (char*)JS_ALLOC(nStrLen*2);
+					if(pRedirectURL) {
+						pRequest->nExplicitProxyFlag = 1;
+						JS_UTIL_StrURLDecode(pRes+nRedirectIndex+17,pRedirectURL,nStrLen*2);
+					}
+				}
 			}
 			nStatus=HTTP_REQ_VERSION;
 		}else if(nStatus==HTTP_REQ_VERSION) {
@@ -516,9 +526,6 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 							}else if(JS_UTIL_FindPattern(pVal,"Firefox",nValLen,7,0)>=0) {
 								pRequest->nUserAgent = JS_BROWSER_FIREFOX;
 							}
-						}else if(JS_UTIL_StrCmp(pKey,"TurboGate211",0,0,1)==0) {
-							pRequest->nExplicitProxyFlag = 1;
-							pRedirectURL = JS_UTIL_StrDup(pVal);
 						}
 						nValOfMinus = -1;
 						JS_UTIL_HTTP_FieldMap_Set(pRequest->hFieldList,pKey,pVal,&nValOfMinus);
@@ -572,9 +579,6 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 		}
 	}
 	JS_FREE(pBuffer);
-	if(pRedirectURL) {
-		JS_UTIL_FixHTTPRequest(pRequest,"TurboGate211","none",1);
-	}
 LABEL_EXIT_CHECKREQ:
 	if(pHost && pRequest)
 		JS_UTIL_ParseHTTPHost(pHost,&pRequest->nTargetIP,&pRequest->nTargetPort);
@@ -585,6 +589,9 @@ LABEL_EXIT_CHECKREQ:
 		//DBGPRINT("TMP:DEL3 %d %d\n",nReqLen,(pRequest->pURL==NULL)?1:0);
 		JS_UTIL_HTTP_DeleteRequest(pRequest);
 		pRequest = NULL;
+	}
+	if(pRedirectURL) {
+		DBGPRINT("explicit turbogate on: host=%s, url=%s\n",pRequest->pHost,pRequest->pURL);
 	}
 	return pRequest;
 }

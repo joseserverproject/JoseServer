@@ -726,6 +726,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				if(*pItem->pnMaxFd < (int)nOutSock)
 					*pItem->pnMaxFd = nOutSock+1;
 				JS_UTIL_UnlockMutex(pItem->hMutexForFDSet);
+				DBGPRINT("TMP: simple httpclient: go ok %x %d %d, %d\n",pItem->nHostIP,nOutSock,*pItem->pnMaxFd,(int)errno);
 				////status change to connecting
 				JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_CONNECTING);
 			}

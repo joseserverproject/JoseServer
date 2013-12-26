@@ -111,6 +111,7 @@ typedef struct JS_HttpServer_SessionItemTag
 	char   strIP[20];
 	int	   nIsProxyReq;
 	int	   nZeroRxCnt;
+	int	   nRcvDbgSize;
 }JS_HttpServer_SessionItem;
 
 typedef struct   JS_HttpServerGlobalTag
@@ -739,7 +740,9 @@ static int JS_HttpServer_SendFileReqHeader(JS_EventLoop * pIO, JS_HttpServer_Ses
 		JS_STRPRINTF(strTemp,nBuffSize,JS_HTTPSERVER_PARTIAL_OK_TEMPLATE,strDate,strLM,strETAG,pRsp->nRangeStartOffset,
 			pRsp->nRangeStartOffset+pRsp->nRangeLen-1,JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem));
 	}else {
-		JS_STRPRINTF(strTemp,nBuffSize,JS_HTTPSERVER_FULL_OK_TEMPLATE,strDate,strLM,strETAG,pRsp->nRangeLen,JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem));
+		const char * strMime;
+		strMime = JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem);
+		JS_STRPRINTF(strTemp,nBuffSize,JS_HTTPSERVER_FULL_OK_TEMPLATE,strDate,strLM,strETAG,pRsp->nRangeLen,strMime);
 		if(pItem->nForceDownload && pItem->pFileName) {
 			int nStrLen = strlen(strTemp);
 			char strURLEncode[256];
@@ -1113,6 +1116,7 @@ static int JS_HttpServer_CheckResource(JS_HttpServerGlobal * pHttpServer, JS_Eve
 			if(nIsFromCGI==0)
 				JS_UTIL_HTTP_ConvertURLtoLocalFilePath(pHttpServer->pDownloadDir,pReq->pURL+pReq->nResOffset
 											,pPathBuff, JS_CONFIG_MAX_SMALLPATH,pReq->nURLLen-pReq->nResOffset);
+			DBGPRINT("TMP: check resource: %s\n",pPathBuff);
 			pItem->hFile = JS_UTIL_FileOpenBinary(pPathBuff,1,0);
 			if(pItem->hFile==NULL)  {
 				DBGPRINT("check resource: file open error\n");
@@ -1131,6 +1135,10 @@ static int JS_HttpServer_CheckResource(JS_HttpServerGlobal * pHttpServer, JS_Eve
 			}
 			////check size
 			if(pReq->nRangeStartOffset > 0) {
+				if(pReq->nRangeEndOffset<=0) {
+					pReq->nRangeEndOffset = nResSize-1;
+					pReq->nRangeLen = nResSize-pReq->nRangeStartOffset;
+				}
 				if(pReq->nRangeStartOffset+pReq->nRangeLen>nResSize) {
 					pReq->nRangeLen = nResSize-pReq->nRangeStartOffset;
 					pReq->nRangeEndOffset = nResSize-1;
@@ -1140,6 +1148,7 @@ static int JS_HttpServer_CheckResource(JS_HttpServerGlobal * pHttpServer, JS_Eve
 				pRsp->nRangeEndOffset = pReq->nRangeEndOffset;
 				pRsp->nRangeStartOffset = pReq->nRangeStartOffset;
 				pRsp->nRangeLen = pReq->nRangeLen;
+				DBGPRINT("TMP: partial check resource: %llu, %llu, %llu\n",pRsp->nRangeStartOffset,pRsp->nRangeEndOffset,pRsp->nRangeLen);
 				JS_UTIL_SetFilePos(pItem->hFile,pReq->nRangeStartOffset);
 			}else {
 				pRsp->nRangeEndOffset = 0;
@@ -1224,19 +1233,21 @@ static int JS_HttpServer_TryToRead(JS_EventLoop * pIO,JS_HttpServer_SessionItem 
 		nRead=JS_UTIL_TCP_Recv(pItem->nInSock,strTemp,JS_CONFIG_NORMAL_READSIZE,nTime);
 		//nRead=JS_UTIL_TCP_Recv(pItem->nInSock,strTemp,4,nTime);
 		if(nRead<0) {
-			//if(pItem->pReq && pItem->pReq->pURL)
-			//	DBGPRINT("Connection from client off %d %s\n",errno,pItem->pReq->pURL);
+			if(pItem->pReq && pItem->pReq->pURL)
+				DBGPRINT("TMP: http:client off %d %s\n",errno,pItem->pReq->pURL);
 			nRet = -1;
 			goto LABEL_EXIT_DOREQUEST;
 		}else if(nRead==0) {
 			pItem->nZeroRxCnt ++;
 			if(pItem->nZeroRxCnt>JS_CONFIG_MAX_RECVZERORET) {
-				DBGPRINT("http: tcp session is done RST/FIN\n");
+				if(pItem->pReq && pItem->pReq->pURL)
+					DBGPRINT("TMP: http: tcp session is done RST/FIN %s\n",pItem->pReq->pURL);
 				nRet = -1;
 				goto LABEL_EXIT_DOREQUEST;
 			}
 			goto LABEL_EXIT_DOREQUEST;
 		}else {
+			pItem->nRcvDbgSize += nRead;
 			pItem->nZeroRxCnt = 0;
 			nRet = JS_SimpleQ_PushPumpIn(hQueue,strTemp,nRead);	////no need to lock for req queue
 			if(nRet<0) {
@@ -1407,13 +1418,17 @@ static int JS_HttpServer_TryToSend(JS_EventLoop * pIO, JS_HttpServer_SessionItem
 			nRet = -1;
 			DBGPRINT("send some: file read error\n");
 			goto LABEL_EXIT_SENDSOME;
+		}else if(nReadSize<JS_CONFIG_MAXREADSIZE) {
+			DBGPRINT("TMP: send some: file read size=%u\n",nReadSize);
 		}
 		////push some data from file into queue
 		JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
 		nRet = JS_SimpleQ_PushPumpIn(hQueue,strTemp, nReadSize);
 		nIsFileEnd = JS_SimpleQ_CheckAllRcvd(hQueue);
-		if(nIsFileEnd)
+		if(nIsFileEnd) {
+			DBGPRINT("TMP: send some: all data read %s\n",pReq->pURL);
 			pReq->nQueueStatus = JS_REQSTATUS_ENDOFACTION;
+		}
 		JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
 		if(nRet<0) {
 			nRet = -1;
@@ -1429,13 +1444,16 @@ static int JS_HttpServer_TryToSend(JS_EventLoop * pIO, JS_HttpServer_SessionItem
 		pData = JS_SimpleQ_PreparePumpOut(hQueue, 0, &nBuffSize, NULL, 0, NULL);
 		JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
 		if(pData) {
+			if(nBuffSize>JS_CONFIG_MAXSENDSIZE)
+				nBuffSize = JS_CONFIG_MAXSENDSIZE;
 			nSent = JS_UTIL_TCP_SendTimeout(pItem->nInSock,pData,nBuffSize,10);
 			if(nSent>0) {
 				JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
 				nPumpOutResult = JS_SimpleQ_FinishPumpOut(hQueue, nSent);
 				JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
+				//DBGPRINT("TMP: send q size=%u\n",nSent);
 			}else if(nSent==0) {
-				DBGPRINT("TMP: no sending q\n");
+				//DBGPRINT("TMP: no sending q\n");
 				break;
 			}else {
 				JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);

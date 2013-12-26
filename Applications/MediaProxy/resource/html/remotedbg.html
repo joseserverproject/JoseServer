@@ -11,12 +11,26 @@
 			defaultURLPrefix = "http://" + document.location.host;
 			//timerCheckConnection = setInterval('js_check_connectionnumber()',1001);
 		}		
+		function js_open_demourl() {
+			var strURL = "http://1-dot-empyrean-engine-436.appspot.com/registerserver?cmd=redirect&id=demovideo";
+			$.ajax({
+			  type: 'GET',
+			  url: defaultURLPrefix+"/proxycmd",
+			  data: {
+				cmd: "opendemo",
+				url: strURL,
+				cacheclear: Math.random()
+			  },
+			  dataType: "json"
+			});				
+		}		
 	</script>
 </head>
 <body onload="javascript:js_on_start();">
 <div data-role="content" id="contentlist">
 <!--INPSTART-->
 <h2>Remote Debugging Mode...</h2>
+<a href='#' onclick='js_open_demourl();' rel='external' data-role='button' id='btnback'>Open Video URL</a> 
 <a href='gui.html' rel='external' data-role='button' id='btnback'>Back</a> 
 </div>
 </body>

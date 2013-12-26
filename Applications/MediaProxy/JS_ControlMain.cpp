@@ -9,6 +9,7 @@
 #include <map>
 #include <stdio.h>
 #include <string.h>
+#include <Shellapi.h>
 #include <Shldisp.h>
 #include "MediaProxy.h"
 #include "JS_Config.h"
@@ -153,11 +154,15 @@ static  int  JS_Control_DIRECTAPI_ProxyControl (JS_HANDLE hSession)
 		nOption = atoi(pBuffer);
 		JS_ChangeConfigOption(NULL,JS_CONFIG_USE_PROXYAGENTASJOSE,nOption);
 		JS_HttpServer_SendQuickJsonRsp(hSession,"{\"result\":\"ok\"}");
+	}else if(strcmp(pBuffer,"opendemo")==0) {
+		JS_HttpServer_GetVariableFromReqWithURLDecode(hSession,"url",pBuffer,2000);
+		ShellExecute(NULL, "open", pBuffer, NULL, NULL, SW_SHOWNORMAL);
+		JS_HttpServer_SendQuickJsonRsp(hSession,"{\"result\":\"ok\"}");		
 	}else
 		JS_HttpServer_SendQuickErrorRsp(hSession,403,"not found");
 
 	return 0;
-}
+} 
 
 bool JS_ControlMain_DirExist(const string& dirName_in)
 {

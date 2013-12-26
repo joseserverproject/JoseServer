@@ -250,8 +250,8 @@ int JS_UTIL_TCP_Recv(JS_SOCKET_T nSock, char * strBuff, int nLen, unsigned int n
 #else
 		if(nRet < 0) {
 			nErr = errno;
-			if (nErr != EWOULDBLOCK && nErr != EAGAIN))
-        		nRet = -1;
+			if (nErr != EWOULDBLOCK && nErr != EAGAIN)
+        		nRet = 0;
 		}
 #endif
 	}else {

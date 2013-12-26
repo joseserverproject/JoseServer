@@ -145,6 +145,7 @@ static int JS_ThreadPool_PhaseChange (void * pOwner, JS_POOL_ITEM_T * pPoolItem,
 	DWORD nThreadID;
 #else
 	pthread_attr_t	thread_attr;
+	pthread_t rcThread;
 #endif
 	JS_ThreadPoolGlobal * pPool;
 	JS_ThreadPoolItem * pThreadItem = _RET_MYDATA_(pPoolItem);
@@ -173,8 +174,8 @@ static int JS_ThreadPool_PhaseChange (void * pOwner, JS_POOL_ITEM_T * pPoolItem,
 #else
 			pthread_attr_init(&thread_attr);
 			pthread_attr_setstacksize(&thread_attr, JS_CONFIG_NORMAL_STACKSIZE);
-			pthread_create(&pThreadItem->rcThread, &thread_attr, _JS_ThreadFunc_, (void *)pPoolItem);
-			pthread_detach(pThreadItem->rcThread);
+			pthread_create(&rcThread, &thread_attr, _JS_ThreadFunc_, (void *)pPoolItem);
+			pthread_detach(rcThread);
 			pthread_attr_destroy(&thread_attr);
 #endif
 		}

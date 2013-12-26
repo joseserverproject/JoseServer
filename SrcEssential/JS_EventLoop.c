@@ -578,7 +578,7 @@ static void * _JS_EventLoop_IOThread_(void * pParam)
 	DBGPRINT("ServerLoop IO-%d start!\n",pIO->nIOIndex);
 	while(1) {
 		rcTime.tv_sec = 0;
-		if(pIO->nOutputNum>0)
+		if(JS_3Pool_GetSize(pIO->hIOPool,JS_POOL_PHASE_HOT)>0)
 			rcTime.tv_usec = 30000;
 		else
 			rcTime.tv_usec = pIO->nWaitMs*1000;

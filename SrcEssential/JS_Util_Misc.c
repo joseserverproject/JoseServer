@@ -42,6 +42,9 @@ Utility functions
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "JET-INAPI", __VA_ARGS__))
 #endif
+#if (JS_CONFIG_OS!=JS_CONFIG_OS_WIN32)
+#include <pthread.h>
+#endif
 
 //////////////////////////////////////////////////////
 //macro start
