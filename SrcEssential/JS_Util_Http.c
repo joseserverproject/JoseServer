@@ -914,6 +914,7 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 	char strMethod[16];
 	JS_HANDLE hPosRaw;
 	void * pItemData;
+	int  nChangeRange = 0;
 	JS_UtilHttpSmallMapItem * pItem;
 	nCumLen = 0;
 
@@ -922,6 +923,8 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 	}else {
 		JS_STRCPY(strMethod,pReq->strMethod);
 	}
+	if(nRangeStart>0 || nRangeLen>0)
+		nChangeRange = 1;
 	if(strURL) {
 		strHost[0] = 0;
 		JS_UTIL_HTTPExtractHostFromURL(strURL,strHost,1000);
@@ -944,11 +947,12 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 	if(nCumLen>=nDataLen)
 		goto LABEL_EXIT_COPYREQ;
 	////set range
-	if(nRangeLen==0)
-		JS_STRPRINTF(strRangeStr,256,"%llu-",nRangeStart);
-	else
-		JS_STRPRINTF(strRangeStr,256,"%llu-%llu",nRangeStart,nRangeStart+nRangeLen-1);
-
+	if(nChangeRange) {
+		if(nRangeLen==0)
+			JS_STRPRINTF(strRangeStr,256,"%llu-",nRangeStart);
+		else
+			JS_STRPRINTF(strRangeStr,256,"%llu-%llu",nRangeStart,nRangeStart+nRangeLen-1);
+	}
 	nArrSize = pReq->nFieldNum;
 	hPosRaw = NULL;
 	while(1) {
@@ -956,9 +960,8 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 		if(hPosRaw==NULL)
 			break;
 		pItem = (JS_UtilHttpSmallMapItem*)pItemData;
-		if(JS_UTIL_StrCmpRestrict(pItem->pKey,"Range",0,0,1)==0) {
-			if(nRangeLen>0)
-				JS_STRPRINTF(pData+nCumLen,nDataLen-nCumLen,"Range: bytes=%s\r\n",strRangeStr);
+		if(nChangeRange && JS_UTIL_StrCmpRestrict(pItem->pKey,"Range",0,0,1)==0) {
+			JS_STRPRINTF(pData+nCumLen,nDataLen-nCumLen,"Range: bytes=%s\r\n",strRangeStr);
 			nRangeSet = 1;
 		}else if(strURL && JS_UTIL_StrCmpRestrict(pItem->pKey,"Host",0,0,1)==0) {
 			JS_STRPRINTF(pData+nCumLen,nDataLen-nCumLen,"Host: %s\r\n",strHost);
@@ -971,7 +974,7 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 			goto LABEL_EXIT_COPYREQ;
 		}
 	}
-	if(nRangeLen>0 && nRangeSet==0) {
+	if(nChangeRange && nRangeSet==0) {
 		JS_STRPRINTF(pData+nCumLen,nDataLen-nCumLen,"Range: bytes=%s\r\n",strRangeStr);
 		nCumLen = strlen(pData);
 	}
