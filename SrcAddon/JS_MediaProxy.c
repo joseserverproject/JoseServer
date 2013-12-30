@@ -417,7 +417,7 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 		int nConnection;
 		if((nConnection=JS_AutoTrafficControl_EstimateBestConnectionNumber(pReq,pRsp))>1) {
 			////transfer item to turbogate
-			if(JS_ThreadPool_GetWorksNum(pGlobal->hTurboWorkQ)<JS_CONFIG_MAX_TURBOITEM-2) {
+			if(JS_ThreadPool_GetWorksNum(pGlobal->hTurboWorkQ)<JS_CONFIG_MAX_TURBOITEM) {
 				strTemp[nBuffSize] = 0;
 				JS_EventLoop_SetOutputFd(pIO,pItem->nInSock,0,1);
 				JS_EventLoop_SetInputFd(pIO,pItem->nInSock,0,1);

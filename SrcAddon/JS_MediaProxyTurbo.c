@@ -227,7 +227,6 @@ static int JS_TurboGate_ResetItem(JS_TurboGate_SessionItem * pItem)
 {
 	int nCnt;
 	JS_HANDLE hClient;
-	JS_RQ_ITEM_T * pRqItem;
 	pItem->pReq->nQueueStatus = JS_REQSTATUS_WAITREQ;
 	for(nCnt=0; nCnt<JS_CONFIG_MAX_TURBOCONNECTION; nCnt++) {
 		hClient = pItem->arrHttp[nCnt];
@@ -277,7 +276,7 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 	}
 	if(*(pItem->pnExitFlag))
 		return -1;
-	if(JS_ReorderingQ_NeedNewItem(pRqItem)) {
+	if(pRqItem==NULL) {
 		pRqItem = JS_ReorderingQ_PumpInPushBack(pItem->hReorderingQueue,nContID,0);
 		if(pRqItem==NULL) {
 			////all data had been allocated
@@ -304,8 +303,13 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 		if(nOldStatus==JS_HTTPCLIENT_STATUS_ZERO || nOldStatus==JS_HTTPCLIENT_STATUS_IDLE) {
 			JS_SimpleHttpClient_SetRange(hClient,nRangeStart,nRangeLen);
 			DBGPRINT("turbogate: set range contid=%d, %llu\n",nContID, nRangeLen);
-		}else
+		}else {
 			DBGPRINT("turbogate: can't setrange contid=%d, %llu, status=%d\n",nContID, nRangeLen,nOldStatus);
+			if(nContID != JS_MAIN_CONTID) {
+				JS_SimpleHttpClient_Reset(hClient,1);
+				JS_SimpleHttpClient_SetRange(hClient,nRangeStart,nRangeLen);
+			}
+		}
 	}
 	////2. do action
 	pRsp = NULL;
@@ -389,13 +393,18 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 				JS_ReorderingQ_PumpInCopyData(pRqItem,strMaxBuff+nRetFromQ,nBuffSize-nRetFromQ);
 			}else if(nContID != JS_MAIN_CONTID && pItem->nConnectionNum>1){
 				nRet = JS_RET_CRITICAL_ERROR;
-				DBGPRINT("turbogate mem error(pumpin %u<->%u,httplen=%llu,rqitemsize=%u)\n",nRetFromQ,nBuffSize,JS_SimpleHttpClient_GetRangeLen(hClient),pRqItem->nItemBuffSize);
+				DBGPRINT("turbogate: not alloced size %llu\n",JS_ReorderingQ_GetNotAllocatedSizeFromTotal(pItem->hReorderingQueue));
+				DBGPRINT("turbogate mem error(pumpin %u<->%u,httplen=%llu,rqitemsize=%u, rqoffset=%u, rqrangestart=%llu)\n",nRetFromQ,nBuffSize,JS_SimpleHttpClient_GetRangeLen(hClient),pRqItem->nItemBuffSize,pRqItem->nPumpInOffset, pRqItem->nOffsetInStream+pItem->nRangeStartOffset);
 				goto LABEL_CATCH_ERROR;
 			}
 		}
 		////maybe chunked case
 		if(pItem->nConnectionNum<=1 && nClientEof) {
 			pRqItem->nIsLastItem = 1;
+		}
+		if(JS_ReorderingQ_NeedNewItem(pRqItem)) {
+			////reset buffer
+			pItem->arrRqItem[nContID] = NULL;
 		}
 	}			
 	if(nClientRet<0) {

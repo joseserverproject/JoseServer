@@ -217,7 +217,7 @@ JS_RQ_ITEM_T * JS_ReorderingQ_PumpInPushBack(JS_HANDLE hRQ, int nConnectionID, U
 		return NULL;
 	}
 	if(pQueue->nNum>=pQueue->nMax) {
-		DBGPRINT("RQ no remain item in Q %d,%d\n",pQueue->nNum,pQueue->nMax);
+		//DBGPRINT("RQ no remain item in Q %d,%d\n",pQueue->nNum,pQueue->nMax);
 		return NULL;
 	}
 	if(pQueue->nRemainAllocSize<=0) {
@@ -225,6 +225,11 @@ JS_RQ_ITEM_T * JS_ReorderingQ_PumpInPushBack(JS_HANDLE hRQ, int nConnectionID, U
 		return NULL;
 	}
 	pItem = (JS_RQ_ITEM_T *)&(pQueue->arrRQ[pQueue->nTail]);
+	if(pItem->nItemBuffSize>pItem->nPumpOutOffset) 
+		return NULL;
+	////tmp dbg
+	DBGPRINT("TMP: mqueue: push q: index=%d, old contid=%d, new contid=%d, old size=%u:%u:%u, qnum=%u\n",pQueue->nTail, pItem->nConnectionID,nConnectionID,pItem->nItemBuffSize,pItem->nPumpOutOffset,pItem->nPumpInOffset,pQueue->nNum);
+	memset((void*)pItem,0,sizeof(JS_RQ_ITEM_T));	////make it null
 	if(nManualChunkSize>0) {
 		if(nManualChunkSize<pQueue->nRemainAllocSize)
 			pItem->nItemBuffSize = nManualChunkSize;
@@ -347,7 +352,7 @@ int JS_ReorderingQ_PumpOutComplete(JS_HANDLE hRQ, unsigned int nDataSize)
 		if(pItem->nIsLastItem)
 			nRet = JS_RET_REORDERINGQ_EOF;
 		JS_FREE(pItem->pItemBuff);
-		memset((void*)pItem,0,sizeof(JS_RQ_ITEM_T));	////make it null
+		//memset((void*)pItem,0,sizeof(JS_RQ_ITEM_T));	////make it null
 		pQueue->nHead = _JS_ROUND_ADD_(pQueue,pQueue->nHead);
 		if(pQueue->nNum>0)
 			pQueue->nNum--;
