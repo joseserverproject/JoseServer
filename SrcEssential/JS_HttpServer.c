@@ -139,6 +139,7 @@ static JS_EventLoopHandler g_httpEventHandler;
 extern JS_HANDLE JS_GetServerLoopHandle(JS_HANDLE hJose);
 extern JS_HANDLE JS_GetHttpServerHandle(JS_HANDLE hJose);
 
+static int JS_HttpServer_BuildDefaultMsg(JS_HttpServer_SessionItem * pItem, UINT64 nLength);
 ////event handlers for server loop
 static JS_SOCKET_T JS_HttpServer_GetSocket(JS_POOL_ITEM_T * pPoolItem);
 static int JS_HttpServer_AddItem(JS_EventLoop * pIO, JS_POOL_ITEM_T * pPoolItem, JS_SOCKET_T nInSock);
@@ -435,10 +436,13 @@ int JS_HttpServer_DoAPICommand(JS_HANDLE hSession, int nCommand, int nIntParam, 
 		case JS_HTTPAPI_CMD_SENDTEXTRSP:
 			if(strParam) {
 				int nSize;
-				char strTemp[JS_CONFIG_MAX_SMALLURL];
+				char strTemp[JS_CONFIG_MAX_SMALLURL+4];
 				nSize = strlen(strParam);
-				JS_STRPRINTF(strTemp,JS_CONFIG_MAX_SMALLURL,JS_HTTPSERVER_HTML_OK_TEMPLATE,nSize);
-				nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,strlen(strTemp));
+				JS_HttpServer_BuildDefaultMsg(pSession,nSize);
+				JS_UTIL_HTTP_AddField(pSession->pRsp->hFieldList, "Content-Type", "text/html");
+				nRet = JS_UTIL_HTTP_BuildStaticRspString(pSession->pRsp,200,NULL,strTemp,JS_CONFIG_MAX_SMALLURL);
+				if(nRet>=0)
+					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,pSession->pRsp->nRspLen);
 				if(nRet>0) {
 					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strParam,nSize);
 				}
@@ -452,8 +456,11 @@ int JS_HttpServer_DoAPICommand(JS_HANDLE hSession, int nCommand, int nIntParam, 
 				int nSize;
 				char strTemp[JS_CONFIG_MAX_SMALLURL];
 				nSize = strlen(strParam);
-				JS_STRPRINTF(strTemp,JS_CONFIG_MAX_SMALLURL,JS_HTTPSERVER_JSON_OK_TEMPLATE,nSize);
-				nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,strlen(strTemp));
+				JS_HttpServer_BuildDefaultMsg(pSession,nSize);
+				JS_UTIL_HTTP_AddField(pSession->pRsp->hFieldList, "Content-Type", "application/json");
+				nRet = JS_UTIL_HTTP_BuildStaticRspString(pSession->pRsp,200,NULL,strTemp,JS_CONFIG_MAX_SMALLURL);
+				if(nRet>=0)
+					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,pSession->pRsp->nRspLen);
 				if(nRet>0) {
 					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strParam,nSize);
 				}
@@ -465,10 +472,13 @@ int JS_HttpServer_DoAPICommand(JS_HANDLE hSession, int nCommand, int nIntParam, 
 		case JS_HTTPAPI_CMD_SENDXMLRSP:
 			if(strParam) {
 				int nSize;
-				char strTemp[JS_CONFIG_MAX_SMALLURL];
+				char strTemp[JS_CONFIG_MAX_SMALLURL+4];
 				nSize = strlen(strParam);
-				JS_STRPRINTF(strTemp,JS_CONFIG_MAX_SMALLURL,JS_HTTPSERVER_XML_OK_TEMPLATE,nSize+strlen(JS_DEFAULT_XML_DEC));
-				nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,strlen(strTemp));
+				JS_HttpServer_BuildDefaultMsg(pSession,nSize+strlen(JS_DEFAULT_XML_DEC));
+				JS_UTIL_HTTP_AddField(pSession->pRsp->hFieldList, "Content-Type", "application/xml");
+				nRet = JS_UTIL_HTTP_BuildStaticRspString(pSession->pRsp,200,NULL,strTemp,JS_CONFIG_MAX_SMALLURL);
+				if(nRet>=0)
+					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,pSession->pRsp->nRspLen);
 				if(nRet>0) {
 					JS_STRPRINTF(strTemp,JS_CONFIG_MAX_SMALLURL,JS_DEFAULT_XML_DEC);
 					nRet = JS_HttpServer_SendRspQueue(pSession,(char*)strTemp,strlen(strTemp));
@@ -526,6 +536,20 @@ LABEL_CATCH_ERROR:
 
 ///////////////////////////////////////////////////////////////////////////////
 /////inner functions////////////////////////
+static int JS_HttpServer_BuildDefaultMsg(JS_HttpServer_SessionItem * pItem, UINT64 nLength)
+{
+	JS_HTTP_Response * pRsp;
+
+	if(pItem==NULL || pItem->pRsp==NULL)
+		return -1;
+	pRsp = pItem->pRsp;
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Server","JoseServer 1.0");
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Accept-Ranges","bytes");
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Connection","Keep-Alive");
+	JS_UTIL_HTTP_AddIntField(pRsp->hFieldList,"Content-Length",nLength);
+	return 0;
+}
+
 static int JS_HttpServer_IOHandler(JS_EventLoop * pIO , JS_POOL_ITEM_T * pPoolItem, JS_FD_T * pRDSet,JS_FD_T * pWRSet)
 {
 	JS_SOCKET_T nTmpSock;
@@ -607,6 +631,8 @@ static int JS_HttpServer_ResetSession(JS_HttpServer_SessionItem * pItem, JS_HTTP
 		JS_FREE(pItem->pVarData);
 	pItem->pVarData = NULL;
 	pItem->nVarDataLen = 0;
+	if(pItem->pRsp && pItem->pRsp->hFieldList)
+		JS_UTIL_HTTP_ClearFIeldList(pItem->pRsp->hFieldList);
 	JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
 	return 0;
 }
@@ -651,8 +677,6 @@ static int JS_HttpServer_AddItem(JS_EventLoop * pIO, JS_POOL_ITEM_T * pPoolItem,
 	struct sockaddr_in rcAddr;
 	JS_SOCKET_T nTmpSock = nInSock;
 	JS_HttpServer_SessionItem * pSessionItem = _RET_SESSIONITEM_(pPoolItem);
-	////socket tunning
-	//JS_UTIL_SetSocketBlockingOption(nTmpSock,0);
 	////item init
 	pSessionItem = _RET_SESSIONITEM_(pPoolItem);
 	pSessionItem->nInSock = nTmpSock;
@@ -684,25 +708,25 @@ static int JS_HttpServer_SendErrorPageWithErrorString(JS_HttpServer_SessionItem 
 	int nRet =0;
 	int nSize=0;
 	int nBodySize = 0;
-	char strEnoughBuff[JS_CONFIG_MAX_SMALLURL];
+	char * pHeaderBuffer;
+	char strEnoughBuff[JS_CONFIG_MAX_SMALLURL+4];
 	JS_HTTP_Response * pRsp;
 	pRsp = pItem->pRsp;
 	if(pRsp==NULL)
 		return -1;
-
 	JS_STRPRINTF(strEnoughBuff,JS_CONFIG_MAX_SMALLURL,JS_HTTPSERVER_ERROR_PAGE,nError);
 	nBodySize = strlen(strEnoughBuff);
-
-	JS_STRPRINTF(pBuffer,nBuffLen,JS_HTTPSERVER_ERROR_HEADER_TEMPLATE,nError,pErrorString,nBodySize);
-	nRet = JS_HttpServer_SendRspQueue(pItem,pBuffer,strlen(pBuffer));
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Server","JoseServer 1.0");
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Accept-Ranges","bytes");
+	JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Connection","Close");
+	JS_UTIL_HTTP_AddIntField(pRsp->hFieldList,"Content-Length",nBodySize);
+	pHeaderBuffer = JS_UTIL_HTTP_BuildRspString(pRsp,nError,pErrorString);
+	if(pHeaderBuffer==NULL)
+		return -1;
+	nRet = JS_HttpServer_SendRspQueue(pItem,pHeaderBuffer,pRsp->nRspLen);
 	if(nRet>0)
 		nRet = JS_HttpServer_SendRspQueue(pItem,strEnoughBuff,nBodySize);
-	nSize = strlen(pBuffer);
-	JS_STRPRINTF(pBuffer+nSize,nBuffLen-nSize,JS_HTTPSERVER_ERROR_PAGE,nError);
-	if(JS_HttpServer_SendRspQueue(pItem,pBuffer,nBodySize+nSize)<0) {
-		DBGPRINT("send errorpage: connection closed from client send\n");
-		return -1;
-	}
+	JS_FREE(pHeaderBuffer);
 	if(nNeedToClose) {
 		JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
 		pItem->pReq->nQueueStatus = JS_REQSTATUS_NEEDTOCLOSE;
@@ -712,7 +736,7 @@ static int JS_HttpServer_SendErrorPageWithErrorString(JS_HttpServer_SessionItem 
 		pItem->pReq->nQueueStatus = JS_REQSTATUS_ENDOFACTION;
 		JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
 	}
-	return nSize;
+	return pRsp->nRspLen+nBodySize;
 }
 
 static int JS_HttpServer_SendErrorPage(JS_HttpServer_SessionItem * pItem, int nError, char * pBuffer, int nBuffLen, int nNeedToClose) 
@@ -726,35 +750,68 @@ static int JS_HttpServer_SendFileReqHeader(JS_EventLoop * pIO, JS_HttpServer_Ses
 	char strDate[64];
 	char strETAG[64];
 	char strLM[64];
+	char strRange[128];
 	time_t nCurTime;
+	int nRspCode = 0;
+	const char * pReqEtag;
+	static char strNotModified[] =  "Not Modified";
+	char * pRspStatus = NULL;
 	JS_HTTP_Request * pReq;
 	JS_HTTP_Response * pRsp;
 	JS_HttpServerGlobal * pHttpServer = (JS_HttpServerGlobal *)pItem->pHttpObject;
 
 	pReq = pItem->pReq;
 	pRsp = pItem->pRsp;
-	nCurTime = JS_UTIL_GetSecondsFrom1970();
-	JS_UTIL_HTTP_GmtTimeString(strDate, sizeof(strDate), &nCurTime);
+
 	JS_UTIL_HTTP_MakeETAG(strETAG,sizeof(strETAG),strPath, strLM, sizeof(strLM));
-	if(pRsp->nRangeEndOffset > 0) {
-		JS_STRPRINTF(strTemp,nBuffSize,JS_HTTPSERVER_PARTIAL_OK_TEMPLATE,strDate,strLM,strETAG,pRsp->nRangeStartOffset,
-			pRsp->nRangeStartOffset+pRsp->nRangeLen-1,JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem));
-	}else {
-		const char * strMime;
-		strMime = JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem);
-		JS_STRPRINTF(strTemp,nBuffSize,JS_HTTPSERVER_FULL_OK_TEMPLATE,strDate,strLM,strETAG,pRsp->nRangeLen,strMime);
-		if(pItem->nForceDownload && pItem->pFileName) {
-			int nStrLen = strlen(strTemp);
-			char strURLEncode[256];
-			nStrLen = nStrLen-2;
-			JS_UTIL_StrURLEncode(pItem->pFileName,strURLEncode,256);
-			if(nBuffSize-nStrLen>32) {				
-				JS_STRPRINTF(strTemp+nStrLen,nBuffSize-nStrLen,"Content-Disposition: attachment; filename=\"%s\"\r\n\r\n",strURLEncode);
+	pReqEtag = JS_UTIL_GetHTTPRequestHeader(pReq,"If-None-Match");
+	if(pReqEtag) {
+		if(JS_UTIL_StrCmpRestrict(pReqEtag,strETAG,0,0,0)==0) {
+			////send http 304
+			nRspCode = 304;
+			pRspStatus = strNotModified;
+			JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Server","JoseServer 1.0");
+			JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Connection","Keep-Alive");
+			JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Last-Modified",strLM);
+			JS_UTIL_HTTP_AddField(pRsp->hFieldList,"ETag",strETAG);
+			JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
+			pReq->nQueueStatus = JS_REQSTATUS_ENDOFACTION;
+			JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
+			JS_UTIL_FileDestroy(&pItem->hFile);
+		}
+	}
+	if(nRspCode==0) {
+		nCurTime = JS_UTIL_GetSecondsFrom1970();
+		JS_UTIL_HTTP_GmtTimeString(strDate, sizeof(strDate), &nCurTime);
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Server","JoseServer 1.0");
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Accept-Ranges","bytes");
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Connection","Keep-Alive");
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Date",strDate);
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Last-Modified",strLM);
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"ETag",strETAG);
+		JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Content-Type",JS_HttpServer_GetMimeType(pHttpServer,strPath,pItem));
+	}
+	if(nRspCode==0) {
+		if(pRsp->nRangeEndOffset > 0) {
+			nRspCode = 206;
+			JS_STRPRINTF(strRange,100,"bytes=%llu-%llu",pRsp->nRangeStartOffset,pRsp->nRangeStartOffset+pRsp->nRangeLen-1);
+			JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Content-Range",strRange);
+		}else {
+			nRspCode = 200;
+			JS_UTIL_HTTP_AddIntField(pRsp->hFieldList,"Content-Length",pRsp->nRangeLen);
+			if(pItem->nForceDownload && pItem->pFileName) {
+				int nStrLen = strlen(strTemp);
+				char strURLEncode[256];
+				nStrLen = nStrLen-2;
+				JS_UTIL_StrURLEncode(pItem->pFileName,strURLEncode,256);
+				JS_STRPRINTF(strTemp,nBuffSize,"attachment; filename=\"%s\"",strURLEncode);
+				JS_UTIL_HTTP_AddField(pRsp->hFieldList,"Content-Disposition",strTemp);
 			}
 		}
 	}
+	JS_UTIL_HTTP_BuildStaticRspString(pRsp, nRspCode,  pRspStatus,strTemp, nBuffSize);
 	////send header
-	if(JS_HttpServer_SendRspQueue(pItem,strTemp,strlen(strTemp))<0) {
+	if(JS_HttpServer_SendRspQueue(pItem,strTemp,pRsp->nRspLen)<0) {
 		DBGPRINT("connection closed from client sendx\n");
 		nRet = -1;
 		goto LABEL_EXIT_DOREQUEST_GET;
@@ -885,7 +942,6 @@ LABEL_CATCH_ERROR:
 		JS_FREE(pDest);
 	return pData;
 }
-
 
 static int JS_HttpServer_ParsePostMultiPart(JS_EventLoop * pIO,JS_HttpServer_SessionItem * pItem, JS_HTTP_Request * pReq,  char * pBuff, int nBuffSize) 
 {
@@ -1481,7 +1537,9 @@ static int JS_HttpServer_TryToSend(JS_EventLoop * pIO, JS_HttpServer_SessionItem
 	////check whether queue status is end of action
 	JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
 	if(JS_SimpleQ_GetDataSize(hQueue)<=0 && (pReq->nQueueStatus == JS_REQSTATUS_ENDOFACTION || pReq->nQueueStatus == JS_REQSTATUS_NEEDTOCLOSE)) {
+		JS_UTIL_UnlockMutex(pItem->pPoolItem->hMutex);
 		JS_HttpServer_ResetSession(pItem,pReq);
+		JS_UTIL_LockMutex(pItem->pPoolItem->hMutex);
 		JS_EventLoop_SetOutputFd(pIO,pItem->nInSock,0,1);
 		if(pRsp->hQueue)
 			JS_SimpleQ_Reset(pRsp->hQueue);

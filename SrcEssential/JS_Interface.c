@@ -204,7 +204,7 @@ int JS_ChangeConfigOption(JS_HANDLE hJose, int nConfigID, UINT64 nNewValue)
 		DBGPRINT("turbogate: max connection is changed to %u\n",nMaxCon);
 		JS_UTIL_GetConfig()->nMaxTurboConnection = nMaxCon;
 	}else if(nConfigID==JS_CONFIG_USE_PROXYAGENTASJOSE) {
-		int nOption = nNewValue;
+		int nOption = (int)nNewValue;
 		if(nOption!=0)
 			nOption = 1;
 		JS_UTIL_GetConfig()->nUseJoseAgent = nOption;

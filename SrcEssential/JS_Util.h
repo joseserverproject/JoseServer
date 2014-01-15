@@ -199,7 +199,12 @@ char * JS_UTIL_HTTP_CopyRequest(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, 
 char * JS_UTIL_HTTP_BuildReqString(JS_HTTP_Request	* pReq, HTTPSIZE_T nRangeStart, HTTPSIZE_T nRangeLen, const char * strNewLocation, int nIsProbe);
 int JS_UTIL_FixHTTPRequest(JS_HTTP_Request	* pReq, const char * strKey, const  char * strVal, int nNeedResultString);
 int JS_UTIL_HTTPRequest_CompareHeader(JS_HTTP_Request	* pReq, const char * strKey, const  char * strVal);
-int JS_UTIL_FixHTTPResponse(JS_HTTP_Response * pRsp, const char * strKey, const  char * strVal, int nRspCode, int nNeedResultString);
+char * JS_UTIL_HTTP_BuildRspString(JS_HTTP_Response	* pRsp, int nRspCode, const char * strRspCode);
+int JS_UTIL_HTTP_BuildStaticRspString(JS_HTTP_Response	* pRsp, int nRspCode,  const char * strRspCode, char * pBuff, int nBuffSize);
+int JS_UTIL_HTTP_ClearFIeldList(JS_HANDLE hFieldList);
+int JS_UTIL_HTTP_AddField(JS_HANDLE hFieldList, const char * strKey, const  char * strVal);
+int JS_UTIL_HTTP_AddIntField(JS_HANDLE hFieldList, const char * strKey, UINT64 nVal);
+int JS_UTIL_FixHTTPResponse(JS_HTTP_Response * pRsp, const char * strKey, const  char * strVal);
 int JS_UTIL_HTTPResponse_CompareHeader(JS_HTTP_Response	* pRsp, const char * strKey, const  char * strVal);
 const char * JS_UTIL_GetHTTPRequestHeader(JS_HTTP_Request	* pReq, const char * strKey);
 const char * JS_UTIL_GetHTTPResponseHeader(JS_HTTP_Response	* pRsp, const char * strKey);

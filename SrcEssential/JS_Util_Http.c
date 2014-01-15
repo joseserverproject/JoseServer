@@ -496,7 +496,8 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 							//DBGPRINT("TMP:Range\n");
 							pRequest->nRangeLen = JS_UTIL_HTTP_ParseRange(pVal,&pRequest->nRangeStartOffset,&pRequest->nRangeEndOffset);
 							if(pRequest->nRangeLen>0) {
-								DBGPRINT("REQ RANGE: %llu %llu %llu\n",pRequest->nRangeStartOffset, pRequest->nRangeEndOffset, pRequest->nRangeLen);
+								DBGPRINT("TMP: REQ RANGE: %llu %llu %llu\n",pRequest->nRangeStartOffset, pRequest->nRangeEndOffset, pRequest->nRangeLen);
+								DBGPRINT("TMP: REQ RANGE: %s\n",pVal);
 							}
 						}else if(JS_UTIL_StrCmp(pKey,"Content-Length",0,0,1)==0) {
 							nRangeLen = JS_STRTOULL(pVal,NULL,10);
@@ -663,6 +664,12 @@ JS_HTTP_Response * JS_UTIL_HTTP_PrepareResponse(void)
 	if(pRsp->hQueue==NULL) {
 		nRet = -1;
 		DBGPRINT("prepare rsp:no queue mem error\n");
+		goto LABEL_EXIT_PREPARERSP;
+	}
+	pRsp->hFieldList = JS_List_Create(pRsp,JS_UTIL_HTTP_FiledsRmFunc);
+	if(pRsp->hFieldList==NULL) {
+		nRet = -1;
+		DBGPRINT("prepare rsp:no fieldlist mem error\n");
 		goto LABEL_EXIT_PREPARERSP;
 	}
 LABEL_EXIT_PREPARERSP:
@@ -1189,13 +1196,87 @@ int JS_UTIL_HTTPRequest_CompareHeader(JS_HTTP_Request	* pReq, const char * strKe
 	return nRet;
 }
 
-int JS_UTIL_FixHTTPResponse(JS_HTTP_Response * pRsp, const char * strKey, const  char * strVal, int nRspCode, int nNeedResultString)
+int JS_UTIL_HTTP_BuildStaticRspString(JS_HTTP_Response	* pRsp, int nRspCode,  const char * strRspCode, char * pBuff, int nBuffSize)
+{
+	int nRet = 0;
+	int nCumLen = 0;
+	JS_HANDLE hPosRaw = NULL;
+	void * pItemData = NULL;
+	JS_UtilHttpSmallMapItem * pItem = NULL;
+
+	if(nRspCode)
+		pRsp->nRspCode = nRspCode;
+	if(strRspCode)
+		JS_STRPRINTF(pBuff,nBuffSize,"HTTP/1.1 %d %s\r\n",pRsp->nRspCode,strRspCode);
+	else
+		JS_STRPRINTF(pBuff,nBuffSize,"HTTP/1.1 %d OK\r\n",pRsp->nRspCode);
+	nCumLen = strlen(pBuff);
+	hPosRaw = NULL;
+	while(1) {
+		hPosRaw = JS_List_IterateRaw(pRsp->hFieldList,hPosRaw,&pItemData);
+		if(hPosRaw==NULL)
+			break;
+		pItem = (JS_UtilHttpSmallMapItem*)pItemData;
+		JS_STRPRINTF(pBuff+nCumLen,nBuffSize-nCumLen,"%s: %s\r\n",pItem->pKey,pItem->pVal);
+		nCumLen += strlen(pBuff+nCumLen);
+		if(nCumLen>nBuffSize) {
+			DBGPRINT("build rsp string: too much str error\n");
+			nRet = -1;
+			goto LABEL_CATCH_ERROR;
+		}
+	}
+	JS_STRPRINTF(pBuff+nCumLen,nBuffSize-nCumLen,"\r\n");
+	pRsp->nRspLen = nCumLen+2;
+LABEL_CATCH_ERROR:
+	return nRet;
+}
+
+char * JS_UTIL_HTTP_BuildRspString(JS_HTTP_Response	* pRsp, int nRspCode, const char * strRspCode)
+{
+	int nBuffSize;
+	int nRet = 0;
+	char * pBuff = NULL;
+
+	nBuffSize = JS_List_GetSize(pRsp->hFieldList)*256+512;
+	pBuff = (char*)JS_ALLOC(nBuffSize);
+	if(pBuff==NULL)
+		return NULL;
+	nRet = JS_UTIL_HTTP_BuildStaticRspString(pRsp, nRspCode,  strRspCode, pBuff, nBuffSize);
+	if(nRet<0) {
+		JS_FREE(pBuff);
+		pBuff = NULL;
+	}
+	return pBuff;
+}
+
+int JS_UTIL_HTTP_ClearFIeldList(JS_HANDLE hFieldList)
+{
+	JS_List_Reset(hFieldList);
+	return 0;
+}
+
+int JS_UTIL_HTTP_AddIntField(JS_HANDLE hFieldList, const char * strKey, UINT64 nVal)
+{
+	char strParam[32];
+	JS_STRPRINTF(strParam,32,"%llu",nVal);
+	return JS_UTIL_HTTP_AddField(hFieldList,strKey,strParam);
+}
+
+int JS_UTIL_HTTP_AddField(JS_HANDLE hFieldList, const char * strKey, const  char * strVal)
+{
+	int nRet =0;
+	int nValueOfZero = 0;
+	if(strKey)
+		nRet = JS_UTIL_HTTP_FieldMap_Set(hFieldList,strKey,strVal,&nValueOfZero);
+	return nRet;
+}
+
+
+int JS_UTIL_FixHTTPResponse(JS_HTTP_Response * pRsp, const char * strKey, const  char * strVal)
 {
 	int nRet =0;
 	if(strKey)
 		nRet = JS_UTIL_HTTP_FieldMap_Set(pRsp->hFieldList,strKey,strVal,&pRsp->nFieldNum);
-	if(nRspCode)
-		pRsp->nRspCode = nRspCode;
 	return nRet;
 }
 
@@ -1261,12 +1342,13 @@ void JS_UTIL_HTTP_MakeETAG(char *pBuff, int nBuffLen,const char * strPath, char 
   UINT64 nSize;
   stat(strPath, &stbuf);
   nSize = stbuf.st_size;
-  nTime = 0;
+  nTime = stbuf.st_mtime;
   nDate = (UINT32)nTime;
-  //JS_UTIL_StrPrint(pBuff, nBuffLen, "\"%lx.%lu\"", nTime, nSize);
-  JS_UTIL_StrPrint(pBuff, nBuffLen, "\"%lx.%llu\"",nDate,nSize); 
+  if(pBuff)
+	  JS_UTIL_StrPrint(pBuff, nBuffLen, "\"%lx-%llu\"",nDate,nSize); 
   //DBGPRINT("TMP: MW Check %llu, %u, %d, %lu\n",nSize,nSize,nSize,nSize);
-  strftime(pLMBuff, nLMBuffLen, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&nTime));
+  if(pLMBuff)
+	  strftime(pLMBuff, nLMBuffLen, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&nTime));
 }
 
 int JS_UTIL_HTTP_ConvertURLtoLocalFilePath(const char * strDir, const char * strFullResource, char * pBuffer , int nBuffLen, int nFullResLen)

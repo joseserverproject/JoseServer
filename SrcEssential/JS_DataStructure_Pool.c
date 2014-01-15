@@ -549,9 +549,11 @@ int JS_3Pool_FreeItem(JS_HANDLE hPool, JS_POOL_ITEM_T * pItem, int nIsColdNow)
 		return -1;
 	////check zombie
 	if(pItem->nRefCnt>0) {
-		JS_3Pool_MaskSetZombie(pItem,1);
-		p3Pool->nZombieCount++;
-		JS_List_PushBack(p3Pool->hZombieList,pItem);
+		if(JS_3Pool_MaskGetZombie(pItem)==0) {
+			JS_3Pool_MaskSetZombie(pItem,1);
+			p3Pool->nZombieCount++;
+			JS_List_PushBack(p3Pool->hZombieList,pItem);
+		}
 		return 0;
 	}
 	if(JS_3Pool_MaskGetZombie(pItem)) {
@@ -748,6 +750,8 @@ int JS_3Pool_CheckStatus(JS_HANDLE hPool, UINT32 nMonitorCycle, JS_HANDLE hMutex
 	}
 	////check zombie item
 	if(p3Pool->nZombieCount>0) {
+		if(p3Pool->nZombieCount>100)
+			p3Pool->nZombieCount = p3Pool->nZombieCount;
 		do {
 			JS_UTIL_LockMutex(hMutex);
 			hPos = JS_List_GetNext(p3Pool->hZombieList,hPos);
@@ -757,15 +761,18 @@ int JS_3Pool_CheckStatus(JS_HANDLE hPool, UINT32 nMonitorCycle, JS_HANDLE hMutex
 					////make it cold
 					nOldPhase = pItem->nPhase;
 					JS_3Pool_MaskSetZombie(pItem,0);
-					JS_HashMap_Remove(p3Pool->hHotMap,pItem);
+					if(nOldPhase != JS_POOL_PHASE_COLD) {
+						JS_HashMap_Remove(p3Pool->hHotMap,pItem);
+						p3Pool->pfPhaseChange(p3Pool->pOwner,pItem,JS_POOL_PHASE_COLD);					
+						pItem->nPhase = JS_POOL_PHASE_COLD;
+						JS_List_PushBack(p3Pool->hColdList,pItem);
+					}
 					JS_List_PopPosition(p3Pool->hZombieList,hPos);
-					p3Pool->pfPhaseChange(p3Pool->pOwner,pItem,JS_POOL_PHASE_COLD);					
-					pItem->nPhase = JS_POOL_PHASE_COLD;
-					JS_List_PushBack(p3Pool->hColdList,pItem);
 				}
 			}
 			JS_UTIL_UnlockMutex(hMutex);
 		}while(hPos);
+		p3Pool->nZombieCount = 0;
 		JS_UTIL_LockMutex(hMutex);
 		JS_List_ClearIterationHandler(hPos);
 		JS_UTIL_UnlockMutex(hMutex);		

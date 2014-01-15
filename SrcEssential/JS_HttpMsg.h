@@ -26,60 +26,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _JS_HTTPMSG_H_
 #define _JS_HTTPMSG_H_
 
-#define JS_HTTPSERVER_HTML_OK_TEMPLATE	"HTTP/1.1 200 OK\r\n\
-Server: JoseServer 1.0\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Length: %u\r\n\
-Connection: Keep-Alive\r\n\
-Cahce-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n\
-Pragma: no-cache\r\n\
-Content-Type: text/html\r\n\r\n"
-
-#define JS_HTTPSERVER_JSON_OK_TEMPLATE	"HTTP/1.1 200 OK\r\n\
-Server: JoseServer 1.0\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Length: %u\r\n\
-Connection: Keep-Alive\r\n\
-Cahce-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n\
-Pragma: no-cache\r\n\
-Content-Type: application/json\r\n\r\n"
-
-#define JS_HTTPSERVER_XML_OK_TEMPLATE	"HTTP/1.1 200 OK\r\n\
-Server: JoseServer 1.0\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Length: %u\r\n\
-Connection: Keep-Alive\r\n\
-Cahce-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n\
-Pragma: no-cache\r\n\
-Content-Type: application/xml\r\n\r\n"
-
-#define JS_HTTPSERVER_FULL_OK_TEMPLATE	"HTTP/1.1 200 OK\r\n\
-Date: %s\r\n\
-Server: JoseServer 1.0\r\n\
-Last-Modified: %s\r\n\
-ETag: %s\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Length: %llu\r\n\
-Connection: Close\r\n\
-Content-Type: %s\r\n\r\n"
-
-#define JS_HTTPSERVER_PARTIAL_OK_TEMPLATE	"HTTP/1.1 206 OK\r\n\
-Date: %s\r\n\
-Server: JoseServer 1.0\r\n\
-Last-Modified: %s\r\n\
-ETag: %s\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Range: bytes=%llu-%llu\r\n\
-Connection: Close\r\n\
-Content-Type: %s\r\n\r\n"
-
-#define JS_HTTPSERVER_ERROR_HEADER_TEMPLATE	"HTTP/1.1 %d %s\r\n\
-Server: JoseServer 1.0\r\n\
-Accept-Ranges: bytes\r\n\
-Content-Length: %u\r\n\
-Connection: Close\r\n\
-Content-Type: text/html\r\n\r\n"
-
 #define JS_HTTPSERVER_ERROR_PAGE "<!DOCTYPE html>\n\
 <html lang=en>\n\
   <meta charset=utf-8>\n\
