@@ -251,6 +251,7 @@ static int JS_TurboGate_ChangeConnectionNumber(JS_TurboGate_SessionItem * pItem,
 		pItem->nConnectionNum = nContNum;
 		for(nCnt=0; nCnt<JS_CONFIG_MAX_TURBOCONNECTION; nCnt++) {
 			if(pItem->arrContUse[nCnt] == 0) {
+				DBGPRINT("Increase ContNum %d\n",pItem->nConnectionNum);
 				pItem->arrContUse[nCnt] = 1;
 				break;
 			}
@@ -460,6 +461,7 @@ LABEL_CATCH_ERROR:
 		pItem->arrHttp[nContID] = NULL;
 		pItem->arrContUse[nContID] = 0;
 		pItem->nConnectionNum--;
+		DBGPRINT("Reduce ContNum %d(contid=%d)\n",pItem->nConnectionNum,nContID);
 	}
 	return nRet;
 }
@@ -611,9 +613,9 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 					UINT32 nInSpeed;
 					UINT32 nOutSpeed;
 					JS_ReorderingQ_GetSpeed(pItem->hReorderingQueue,&nInSpeed,&nOutSpeed,NULL);
-					if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>3)) < nOutSpeed) {
+					if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum+1);
-					}else if(pItem->nConnectionNum>1 && (nInSpeed>>1) > nOutSpeed){
+					}else if(pItem->nConnectionNum>2 && (nInSpeed-(nInSpeed>>2)) > nOutSpeed){
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum-1);
 					}
 				}
