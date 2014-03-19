@@ -175,18 +175,26 @@ void JS_UTIL_FrequentDebugMessage(int nID, int nFrq, const char* format, ... )
 	if(nID>=64)
 		return;
 	if(arrIDMap[nID]++>nFrq) {
+		char strTemp[5000];
 		arrIDMap[nID]=0;
 #if (JS_CONFIG_OS==JS_CONFIG_OS_WIN32)
 		{
-			char strTemp[5000];
 			va_start(args, format);
 			vsnprintf(strTemp,4800,format, args );
 			OutputDebugString((LPCSTR)strTemp);
 		}
 #else
-		va_start( args, format );
-		vprintf(format, args);
-		va_end( args );
+		{
+#if (JS_CONFIG_OS==JS_CONFIG_OS_ANDROID)
+			va_start( args, format );
+			vsnprintf(strTemp,4800, format, args );
+			LOGI("%s",strTemp);
+#else
+			va_start( args, format );
+			vsnprintf(strTemp,4800, format, args );
+			printf("%s",strTemp);
+#endif
+		}
 #endif
 	}
 }

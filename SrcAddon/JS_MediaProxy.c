@@ -67,6 +67,13 @@ typedef struct JS_MediaProxy_SessionItemTag
 	int nError;
 }JS_MediaProxy_SessionItem;
 
+typedef struct JS_MediaStatsTag
+{
+	JSUINT	nAvgRtt;
+	JSUINT	nAvgSwnd;
+	JSUINT	nAvgLoss;	
+}JS_MediaStats;
+
 typedef struct   JS_MediaProxyGlobalTag
 {
 	int nNeedToExit;
@@ -74,8 +81,10 @@ typedef struct   JS_MediaProxyGlobalTag
 	JS_HANDLE hGlobalMutex;
 	JS_HANDLE hTurboWorkQ;
 	JS_HANDLE hJose;
+	JS_MediaStats rcMediaStats;
 }JS_MediaProxyGlobal;
 
+extern int JS_MediaProxy_CheckTCPInfo(JS_SOCKET_T nSock);
 extern JS_HANDLE JS_GetProxyServerHandle(JS_HANDLE hJose);
 
 static JS_MediaProxyGlobal * g_pGlobal = NULL;
@@ -401,9 +410,12 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 	nBuffSize = JS_CONFIG_MAX_GETMETHOD;
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	////do nonblocking http client job
-	if(pReq->nQueueStatus == JS_REQSTATUS_WAITCGI || pReq->nQueueStatus == JS_REQSTATUS_BYPASS)
+	if(pReq->nQueueStatus == JS_REQSTATUS_WAITCGI || pReq->nQueueStatus == JS_REQSTATUS_BYPASS) {
 		nClientRet = JS_SimpleHttpClient_DoSomething(hClient, &pRsp, strTemp, &nBuffSize, pRDSet, pWRSet);
-	else
+		if(JS_UTIL_GetConfig()->nMaxTurboConnection==1) {
+			JS_MediaProxy_CheckTCPInfo(JS_SimpleHttpClient_GetSocket(hClient));
+		}
+	}else
 		nClientRet = 0;
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	////check the httpclient job status
@@ -413,7 +425,7 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 	}
 #if (JS_CONFIG_USE_TURBOGATE==1)
 //#if 0
-	if(nClientRet==JS_HTTP_RET_RCVHEADER && pRsp && JS_UTIL_HTTP_GetRspCodeGroup(pRsp) == JS_RSPCODEGROUP_SUCCESS) {
+	if(JS_UTIL_GetConfig()->nMaxTurboConnection>1 && nClientRet==JS_HTTP_RET_RCVHEADER && pRsp && JS_UTIL_HTTP_GetRspCodeGroup(pRsp) == JS_RSPCODEGROUP_SUCCESS) {
 		int nConnection;
 		if((nConnection=JS_AutoTrafficControl_EstimateBestConnectionNumber(pReq,pRsp))>1) {
 			////transfer item to turbogate
@@ -519,6 +531,26 @@ static int JS_MediaProxy_HandOverItem(JS_EventLoop * pIO , JS_POOL_ITEM_T * pPoo
 }
 
 ////url=gateinfo
+int JS_MediaProxy_CheckTCPInfo(JS_SOCKET_T nSock)
+{
+#if (JS_CONFIG_OS!=JS_CONFIG_OS_WIN32)
+	socklen_t  nTcpInfoLen;
+	struct tcp_info rcTcpInfo;
+	JS_SOCKET_T nHttpSock = nSock;
+	if(JS_UTIL_CheckSocketValidity(nHttpSock)>0) {
+		if(getsockopt(nHttpSock, IPPROTO_TCP, TCP_INFO, (void *)&rcTcpInfo, &nTcpInfoLen)==0) {
+			//JS_UTIL_FrequentDebugMessage(21,100,"!Check RTT %d\n",rcTcpInfo.tcpi_rcv_rtt);
+			if(rcTcpInfo.tcpi_rcv_rtt>0 && rcTcpInfo.tcpi_rcv_rtt<1000000) {
+				g_pGlobal->rcMediaStats.nAvgRtt = (g_pGlobal->rcMediaStats.nAvgRtt>>1) + (rcTcpInfo.tcpi_rcv_rtt>>1);
+				g_pGlobal->rcMediaStats.nAvgSwnd = (g_pGlobal->rcMediaStats.nAvgSwnd>>1) + ((rcTcpInfo.tcpi_snd_cwnd*rcTcpInfo.tcpi_snd_wscale)>>11);
+				g_pGlobal->rcMediaStats.nAvgLoss = (g_pGlobal->rcMediaStats.nAvgLoss>>1) + (rcTcpInfo.tcpi_rttvar>>1);
+			}
+		}
+	}	
+#endif
+	return 0;
+}
+
 int JS_MediaProxy_DIRECTAPI_Information (JS_HANDLE hSession)
 {
 	char pBuffer[JS_CONFIG_MAX_SMALLPATH];
@@ -535,6 +567,24 @@ int JS_MediaProxy_DIRECTAPI_Information (JS_HANDLE hSession)
 		}else {
 			JS_HttpServer_SendQuickErrorRsp(hSession,500,"internal error");
 		}
+	}else if(strcmp(pBuffer,"stat")==0) {
+		char * pJsonStruct;
+		int nBuffSize = 256;
+		int nOffset = 0;
+		pJsonStruct = JS_UTIL_StrJsonBuildStructStart(nBuffSize,&nOffset);
+		if(pJsonStruct)
+			pJsonStruct = JS_UTIL_StrJsonBuildStructFieldInterger(pJsonStruct,&nBuffSize,&nOffset,"avgrtt",g_pGlobal->rcMediaStats.nAvgRtt);
+		if(pJsonStruct)
+			pJsonStruct = JS_UTIL_StrJsonBuildStructFieldInterger(pJsonStruct,&nBuffSize,&nOffset,"avgswnd",g_pGlobal->rcMediaStats.nAvgSwnd);
+		if(pJsonStruct)
+			pJsonStruct = JS_UTIL_StrJsonBuildStructFieldInterger(pJsonStruct,&nBuffSize,&nOffset,"avgloss",g_pGlobal->rcMediaStats.nAvgLoss);
+		if(pJsonStruct) {
+			JS_UTIL_StrJsonBuildStructEnd(pJsonStruct,&nBuffSize,&nOffset);
+			JS_HttpServer_SendQuickJsonRsp(hSession,pJsonStruct);			
+			JS_FREE(pJsonStruct);
+		}else {
+			JS_HttpServer_SendQuickErrorRsp(hSession,500,"internal error");	
+		}		
 	}else
 		JS_HttpServer_SendQuickErrorRsp(hSession,403,"not found");
 	return 0;

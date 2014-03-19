@@ -45,6 +45,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <signal.h>
 #include <stdarg.h>
 #include <time.h>
+#include <netinet/tcp.h>
 #if (JS_CONFIG_OS!=JS_CONFIG_OS_ANDROID)
 #include <linux/types.h>
 #include <stdint.h>

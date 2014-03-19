@@ -455,13 +455,21 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 				pURL = JS_UTIL_StrDup(pBuffer);
 			}else {
 				int nRedirectIndex;
+				int nRedirectBy1 = 0;
 				pRes = JS_UTIL_StrDup(pBuffer);
-				nRedirectIndex = JS_UTIL_FindPattern(pRes,"turbogate211?url=",0,16,0);
+				nRedirectIndex = JS_UTIL_FindPattern(pRes,"turbogate201?url=",0,16,0);
+				if(nRedirectIndex>=0)
+					nRedirectBy1 = 1;
+				else
+					nRedirectIndex = JS_UTIL_FindPattern(pRes,"turbogate211?url=",0,16,0);
 				if(nRedirectIndex>=0) {
 					int nStrLen = strlen(pRes);
 					pRedirectURL = (char*)JS_ALLOC(nStrLen*2);
 					if(pRedirectURL) {
-						pRequest->nExplicitProxyFlag = 1;
+						if(nRedirectBy1)
+							pRequest->nExplicitProxyFlag = 100;
+						else
+							pRequest->nExplicitProxyFlag = 1;
 						JS_UTIL_StrURLDecode(pRes+nRedirectIndex+17,pRedirectURL,nStrLen*2);
 					}
 				}
@@ -583,6 +591,8 @@ JS_HTTP_Request	* JS_UTIL_HTTP_CheckRequestPacket(const char * strReq, int nReqL
 LABEL_EXIT_CHECKREQ:
 	if(pHost && pRequest)
 		JS_UTIL_ParseHTTPHost(pHost,&pRequest->nTargetIP,&pRequest->nTargetPort);
+	else
+		pRequest->nTargetPort = 80;
 	if(pRes)
 		JS_FREE(pRes);
 	if(pRequest && (pRequest->pURL==NULL||pRequest->hQueue==NULL)) ///if fail
@@ -592,7 +602,9 @@ LABEL_EXIT_CHECKREQ:
 		pRequest = NULL;
 	}
 	if(pRedirectURL) {
+		JS_UTIL_FixHTTPRequest(pRequest,"Host",pRequest->pHost,0);
 		DBGPRINT("explicit turbogate on: host=%s, url=%s\n",pRequest->pHost,pRequest->pURL);
+		JS_UTIL_HTTP_PrintRequest(pRequest);
 	}
 	return pRequest;
 }

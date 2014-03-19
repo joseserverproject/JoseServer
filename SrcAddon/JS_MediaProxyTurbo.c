@@ -71,10 +71,15 @@ typedef struct JS_TurboGate_SessionItemTag
 	int	  nMaxFd;
 	JS_FD_T	* pReadFdSet;
 	JS_FD_T	* pWriteFdSet;
+	JSUINT	nAvgRtt;
+	JSUINT	nAvgSwnd;
+	JSUINT	nAvgLoss;
 	int			 arrContUse[JS_CONFIG_MAX_TURBOCONNECTION+1];
 	JS_HANDLE    arrHttp[JS_CONFIG_MAX_TURBOCONNECTION+1];
 	JS_RQ_ITEM_T * arrRqItem[JS_CONFIG_MAX_TURBOCONNECTION+1];
 }JS_TurboGate_SessionItem;
+
+extern int JS_MediaProxy_CheckTCPInfo(JS_SOCKET_T nSock);
 
 //////////////////////////////////////////////////////
 //function declarations
@@ -113,6 +118,7 @@ int JS_TurboGate_Handover(JS_HANDLE hWorkQ, JS_HANDLE hHttpClient, int nConnecti
 			DBGPRINT("turbogate: mem error(rsp string)\n");
 			goto LABEL_CATCH_ERROR;
 		}
+		DBGPRINT("turbogate:TMP rsp=%s\n",strRsp);
 	}
 	if(hHttpClient) {
 		pRsp = JS_SimpleHttpClient_GetRsp(hHttpClient);
@@ -203,7 +209,7 @@ static int JS_TurboGate_WorkQEvent (JSUINT nWorkID, void * pParam, int nEvent, J
 				JS_FREE(pJsonStruct);
 			}
 		}else {
-			//DBGPRINT("TMP: turbogate item finished %s\n",pItem->pReq->pURL);
+			DBGPRINT("TMP: turbogate item finished %s\n",pItem->pReq->pURL);
 			if(JS_UTIL_CheckSocketValidity(pItem->nInSock)>=0)
 				JS_UTIL_SocketClose(pItem->nInSock);
 			if(pItem->hReorderingQueue)
@@ -325,7 +331,7 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 			JS_SimpleHttpClient_SetRange(hClient,nRangeStart,nRangeLen);
 			DBGPRINT("turbogate: set range contid=%d, %llu\n",nContID, nRangeLen);
 		}else {
-			DBGPRINT("turbogate: can't setrange contid=%d, %llu, status=%d\n",nContID, nRangeLen,nOldStatus);
+			DBGPRINT("turbogate: can't setrange contid=%d, ralen=%llu, status=%d\n",nContID, nRangeLen,nOldStatus);
 			if(nContID != JS_MAIN_CONTID) {
 				JS_SimpleHttpClient_Reset(hClient,1);
 				JS_SimpleHttpClient_SetRange(hClient,nRangeStart,nRangeLen);
@@ -341,6 +347,7 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 		nClientRet = JS_HTTPRET_CHECKRET(nClientRet);
 	}else
 		nClientEof = 0;
+	//DBGPRINT("TMP: turbogate worker:dosomething (%u) %d %d %x\n",nContID,nClientRet,nBuffSize,(int)pRdSet);
 	////3. anal return val
 	if(nClientRet==JS_HTTP_RET_RCVHEADER) {
 		////check rsp header
@@ -486,6 +493,8 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 	int nOldStatus;
 	int nIsNew;
 	int nContNum;
+	int nTickCounter;
+	int nNeedCheckTCP;
 	char strTemp[JS_CONFIG_NORMAL_READSIZE+4];
 	JS_HANDLE hMainContClient;
 
@@ -497,7 +506,7 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 	////reset fdsets
 	pItem->pReadFdSet = (JS_FD_T*)JS_ALLOC(sizeof(JS_FD_T));
 	pItem->pWriteFdSet = (JS_FD_T*)JS_ALLOC(sizeof(JS_FD_T));
-	pItem->nMaxFd = 0;
+	pItem->nMaxFd = pItem->nInSock;
 	JS_FD_ZERO(pItem->pReadFdSet);
 	JS_FD_ZERO(pItem->pWriteFdSet);
 	JS_FD_ZERO(&rcTmpRDSet);
@@ -506,6 +515,8 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 	nSelectRet = 0;
 	pReq = pItem->pReq;
 	hMainContClient = pItem->arrHttp[JS_MAIN_CONTID];
+	nTickCounter = 0;
+	nNeedCheckTCP = 0;
 	if(hMainContClient)
 		JS_SimpleHttpClient_SetOwner(hMainContClient,pItem,NULL,pItem->pReadFdSet,pItem->pWriteFdSet,&pItem->nMaxFd);
 	while(1) {
@@ -554,6 +565,10 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 				if(nRet<0)////critical error
 					goto LABEL_CATCH_ERROR;
 				nContNum++;
+				////check TCP info
+				if(nNeedCheckTCP && pItem->arrContUse[nCnt]) {
+					JS_MediaProxy_CheckTCPInfo(JS_SimpleHttpClient_GetSocket(pItem->arrHttp[nCnt]));
+				}
 			}
 			if(nContNum>=pItem->nConnectionNum)
 				break;
@@ -573,7 +588,7 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 					if(pItem->nRangeLen<=0 && pItem->nChunked==0) {
 						JS_TurboGate_ResetItem(pItem);
 						pItem->nKeepAliveCnt = 100;
-						//DBGPRINT("TMP: turbogate headersent zero ok %s\n",pItem->pRspString);
+						DBGPRINT("TMP: turbogate headersent zero ok %s\n",pItem->pRspString);
 					}else if(JS_UTIL_HTTP_IsHeadMethod(pReq)) {
 						JS_TurboGate_ResetItem(pItem);
 						//DBGPRINT("TMP: turbogate headersent head ok %s\n",pItem->pRspString);
@@ -615,7 +630,7 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 					JS_ReorderingQ_GetSpeed(pItem->hReorderingQueue,&nInSpeed,&nOutSpeed,NULL);
 					if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum+1);
-					}else if(pItem->nConnectionNum>2 && (nInSpeed-(nInSpeed>>2)) > nOutSpeed){
+					}else if(pItem->nConnectionNum>2 && (nInSpeed>>4) > nOutSpeed){
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum-1);
 					}
 				}
@@ -671,7 +686,15 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 			nSelectRet = 0;
 			JS_UTIL_Usleep(20000);
 		}else {
+			//DBGPRINT("turbogate worker:selecting %d\n",pItem->nMaxFd);
 			nSelectRet = select(pItem->nMaxFd+1,&rcTmpRDSet, &rcTmpWRSet, NULL, &rcTime);
+		}
+		nTickCounter++;
+		if(nTickCounter>50) {
+			nNeedCheckTCP = 1;
+			nTickCounter = 0;
+		}else {
+			nNeedCheckTCP = 0;
 		}
 		if(nSelectRet<0) {
 			nRet = -1;

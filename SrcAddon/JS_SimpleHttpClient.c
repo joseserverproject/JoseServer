@@ -448,9 +448,12 @@ int JS_SimpleHttpClient_SetOwner(JS_HANDLE hClient, JS_HANDLE hOwner, JS_HANDLE 
 		pItem->pOrgWRSet = pOrgWRSet;
 		pItem->pnMaxFd = pnMaxFd;
 		if(nNewRfd) {
+			DBGPRINT("TMP: set new rdset pointer=%x\n",(int) pItem->pOrgRDSet);
 			JS_UTIL_LockMutex(pItem->hMutexForFDSet);
 			JS_FD_SET(pItem->nSocket,pItem->pOrgRDSet);
 			JS_UTIL_UnlockMutex(pItem->hMutexForFDSet);
+			if(*pnMaxFd < pItem->nSocket)
+				*pnMaxFd = pItem->nSocket;
 		}
 	}
 	return 0;
@@ -713,6 +716,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				////2. try to connect
 				pItem->nHostPort = pReq->nTargetPort;
 				nOutSock = JS_UTIL_TCP_TryConnect(pItem->nHostIP, pItem->nHostPort);
+				DBGPRINT("TMP: hostip=%x, hostport=%d\n",pItem->nHostIP, pItem->nHostPort);
 				if(JS_UTIL_CheckSocketValidity(nOutSock)<0) {
 					DBGPRINT("simple httpclient do asyncjob: can't connect to target %x, %d\n",pItem->nHostIP,pItem->nHostPort);
 					nRet = -1;
@@ -741,6 +745,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				}
 				if((nOldStatus==JS_HTTPCLIENT_STATUS_IDLE || JS_FD_ISSET(pItem->nSocket,pRDSet) || JS_FD_ISSET(pItem->nSocket,pWRSet))
 					&& JS_UTIL_TCP_CheckConnection(pItem->nSocket)>=0) {
+					DBGPRINT("TMP: hostip=%x, hostport=%d connected!!\n",pItem->nHostIP, pItem->nHostPort);
 					////build req string
 					pItem->pReqString = JS_UTIL_HTTP_BuildReqString(pItem->pReq,pItem->nRangeStart,pItem->nRangeLen,pItem->pNewLocation,0);
 					if(pItem->pReqString==NULL) {
