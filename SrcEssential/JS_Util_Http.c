@@ -1119,7 +1119,7 @@ static int JS_UTIL_HTTP_FieldMap_IsSame(JS_HANDLE hList, const char * strKey, co
 	const char * pRet = NULL;
 	pRet = JS_UTIL_HTTP_FieldMap_Get(hList,strKey,nArrSize);
 	if(pRet) {
-		if(JS_UTIL_StrCmpRestrict(pRet,strVal,0,0,0)==0) {
+		if(JS_UTIL_StrCmpRestrict(pRet,strVal,0,0,1)==0) {
 			nRet = 1;
 		}
 	}

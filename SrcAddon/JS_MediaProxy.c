@@ -424,12 +424,11 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 		nClientRet = JS_HTTPRET_CHECKRET(nClientRet);
 	}
 #if (JS_CONFIG_USE_TURBOGATE==1)
-//#if 0
 	if(JS_UTIL_GetConfig()->nMaxTurboConnection>1 && nClientRet==JS_HTTP_RET_RCVHEADER && pRsp && JS_UTIL_HTTP_GetRspCodeGroup(pRsp) == JS_RSPCODEGROUP_SUCCESS) {
 		int nConnection;
 		if((nConnection=JS_AutoTrafficControl_EstimateBestConnectionNumber(pReq,pRsp))>1) {
 			////transfer item to turbogate
-			if(JS_ThreadPool_GetWorksNum(pGlobal->hTurboWorkQ)<JS_CONFIG_MAX_TURBOITEM) {
+			if(JS_UTIL_HTTPResponse_CompareHeader(pRsp,"Accept-Ranges","none")==0 && JS_ThreadPool_GetWorksNum(pGlobal->hTurboWorkQ)<JS_CONFIG_MAX_TURBOITEM) {
 				strTemp[nBuffSize] = 0;
 				JS_EventLoop_SetOutputFd(pIO,pItem->nInSock,0,1);
 				JS_EventLoop_SetInputFd(pIO,pItem->nInSock,0,1);

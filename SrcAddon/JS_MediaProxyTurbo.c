@@ -350,6 +350,8 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 	//DBGPRINT("TMP: turbogate worker:dosomething (%u) %d %d %x\n",nContID,nClientRet,nBuffSize,(int)pRdSet);
 	////3. anal return val
 	if(nClientRet==JS_HTTP_RET_RCVHEADER) {
+		////tskim tmp
+		//JS_UTIL_HTTP_PrintResponse(pRsp);
 		////check rsp header
 		if(JS_UTIL_HTTP_GetRspCodeGroup(pRsp) == JS_RSPCODEGROUP_REDIRECT) {
 			////redirect rsp codes, reset is done in the prepare function
@@ -630,7 +632,8 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 					JS_ReorderingQ_GetSpeed(pItem->hReorderingQueue,&nInSpeed,&nOutSpeed,NULL);
 					if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum+1);
-					}else if(pItem->nConnectionNum>2 && (nInSpeed>>4) > nOutSpeed){
+					}
+					else if(pItem->nConnectionNum>2 && (nInSpeed>>5) > nOutSpeed){
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum-1);
 					}
 				}

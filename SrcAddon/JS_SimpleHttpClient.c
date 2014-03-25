@@ -745,7 +745,6 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				}
 				if((nOldStatus==JS_HTTPCLIENT_STATUS_IDLE || JS_FD_ISSET(pItem->nSocket,pRDSet) || JS_FD_ISSET(pItem->nSocket,pWRSet))
 					&& JS_UTIL_TCP_CheckConnection(pItem->nSocket)>=0) {
-					DBGPRINT("TMP: hostip=%x, hostport=%d connected!!\n",pItem->nHostIP, pItem->nHostPort);
 					////build req string
 					pItem->pReqString = JS_UTIL_HTTP_BuildReqString(pItem->pReq,pItem->nRangeStart,pItem->nRangeLen,pItem->pNewLocation,0);
 					if(pItem->pReqString==NULL) {
@@ -753,6 +752,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 						nRet = -1;
 						goto LABEL_CATCH_ERROR;
 					}
+					//DBGPRINT("TMP: hostip=%x, hostport=%d REQ=%s!!\n",pItem->nHostIP, pItem->nHostPort, pItem->pReqString);
 					pItem->nReqOffset = 0;
 					pItem->nReqStrLen = strlen(pItem->pReqString);
 					////send request data with 20ms timeout
