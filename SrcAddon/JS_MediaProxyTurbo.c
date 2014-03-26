@@ -633,7 +633,7 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 					if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum+1);
 					}
-					else if(pItem->nConnectionNum>2 && (nInSpeed>>5) > nOutSpeed){
+					else if(pItem->nConnectionNum>2 && 128 > nOutSpeed){
 						JS_TurboGate_ChangeConnectionNumber(pItem,pItem->nConnectionNum-1);
 					}
 				}
