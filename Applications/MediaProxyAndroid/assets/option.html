@@ -1,0 +1,84 @@
+<html>
+ <head>
+    <title>ControlPannel</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=10.000" >
+	<meta charset="utf-8">
+    <link rel="stylesheet" href="jquery.mobile-1.3.2.min.css" />
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="jquery.mobile-1.3.2.min.js"></script>
+	<script language="javascript">
+		var nTurboProxy = 0;
+		var nFullScreen = 1;
+		var timerCheckConnection = null;
+		var nOldContNum = 4;
+		var nOldUAOption = 0;
+		function js_on_start() {
+			timerCheckConnection = setInterval('js_check_connectionnumber()',3001);
+		}
+		function js_check_connectionnumber() {
+			var nCont = $("#contnum").val();
+			if(nCont != nOldContNum) {
+				HybridApp.changeConnectionNumber(nCont);
+				nOldContNum = nCont;
+				$("#spanstatus").text("Connection Number is "+nCont);
+			}
+		}
+		function js_change_fullscreen() {
+			var strCmd;
+			if(nFullScreen==0) {
+				strCmd = "1";
+				nFullScreen = 1;
+				$("#btnfullscreen  span.ui-btn-text").text("Not use full screen video");
+			}else {
+				nFullScreen = 0;
+				strCmd = "0";
+				$("#btnfullscreen  span.ui-btn-text").text("Full screen video");
+			}
+			HybridApp.setFullScreen(strCmd);		
+		}
+		function js_change_turboproxy() {
+			var strCmd;
+			if(nTurboProxy==0) {
+				strCmd = "1";
+				nTurboProxy = 1;
+				$("#btnproxystart  span.ui-btn-text").text("Stop TurboGate");
+			}else {
+				nTurboProxy = 0;
+				strCmd = "0";
+				$("#btnproxystart  span.ui-btn-text").text("Use TurboGate");
+			}
+			HybridApp.setMediaProxy(strCmd);
+			js_check_connectionnumber();
+		}
+		function js_close_app() {
+			HybridApp.doExit("yo");
+		}
+	</script>
+</head>
+<body onload="javascript:js_on_start();">
+<div data-role="header">
+	<h2>Option Setting</h2>
+</div>
+
+<div data-role="content" id="contentlist">
+<form action='#' method='get'> 
+<div data-role='fieldcontain'> 
+<a href='#' rel='external' onclick='js_change_turboproxy();' data-role='button' id='btnproxystart'>Use TurboGate</a> 
+</div> 
+<div data-role='fieldcontain'> 
+<a href='#' rel='external' onclick='js_change_fullscreen();' data-role='button' id='btnfullscreen'>Not use full screen video</a> 
+</div> 
+<div data-role='fieldcontain'> 
+<label for="slider-1">Max Connection Number</label>
+<input type="range" name="slider-1" id="contnum" value="4" min="1" max="12" />
+</div> 
+<div data-role='fieldcontain'> 
+<h2>Status</h2>
+<p><span id='spanstatus'>Connection: 4</span></p>
+</div>
+<div data-role='fieldcontain'> 
+<a href='#' rel='external' onclick='js_close_app();' data-role='button' id='btnExit'>Exit Program</a> 
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<html>
+ <head>
+    <title>TurboGate Demo Site</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=10.000" >
+	<meta charset="utf-8">
+    <link rel="stylesheet" href="jquery.mobile-1.3.2.min.css" />
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="jquery.mobile-1.3.2.min.js"></script>
+	<script language="javascript">
+		var defaultURLPrefix = "";
+		function js_on_start() {
+			defaultURLPrefix = "http://" + document.location.host;
+		}
+	</script>
+</head>
+<body onload="javascript:js_on_start();">
+<div data-role="content" id="contentlist">
+<h2> Streaming Demo Site</h2>
+<p> http,MP4 streming with various content bitreates</p>
+<ul data-role="listview" data-inset="true">
+    <li><a href="videoplayer.html?bitrate=2mbps&vidname=watchdemovideo1.mp4" rel='external'>
+        <img src="images/vid2.jpg">
+    <h2>2Mbps streaming</h2>
+    <p>mp4,60sec</p></a>
+    </li>
+    <li><a href="videoplayer.html?bitrate=5mbps&vidname=http%3A%2F%2Fwww.auby.no%2Ffiles%2Fvideo_tests%2Fh264_720p_mp_3.1_3mbps_aac_shrinkage.mp4" rel='external'>
+        <img src="images/vid3.jpg">
+    <h2>6Mbps streaming(norway)</h2>
+    <p>mp4,60sec</p></a>
+    </li>
+    <li><a href="videoplayer.html?bitrate=5mbps&vidname=http%3A%2F%2Fwww.auby.no%2Ffiles%2Fvideo_tests%2Fh264_1080p_hp_4.1_10mbps_dts_unstyled_subs_monsters.mkv" rel='external'>
+        <img src="images/vid4.jpg">
+    <h2>10Mbps streaming(norway)</h2>
+    <p>mkv,60sec</p></a>
+    </li>
+	<li><a href="videoplayer.html?bitrate=7mbps&vidname=http%3A%2F%2Fwww.tools4movies.com%2Fdvd_catalyst_profile_samples%2FHarold%2520Kumar%25203%2520Christmas%2520tablet%2520hq2.mp4" rel='external'>
+        <img src="images/vid6.jpg">
+    <h2>5Mbps streaming(USA)</h2>
+    <p>mkv,120sec</p></a>
+    </li>
+    <li><a href="videoplayer.html?bitrate=12mbps&vidname=http%3A%2F%2Fwww.tools4movies.com%2Fdvd_catalyst_profile_samples%2FHarold%2520Kumar%25203%2520Christmas%2520bionic%2520hq2.mp4" rel='external'>
+        <img src="images/vid7.jpg">
+    <h2>2Mbps streaming(USA)</h2>
+    <p>mp4,120sec</p></a>
+    </li>
+    <li><a href="videoplayer.html?bitrate=12mbps&vidname=http%3A%2F%2Fwww.tools4movies.com%2Fdvd_catalyst_profile_samples%2FThe%2520Amazing%2520Spiderman%2520tablet.mp4" rel='external'>
+        <img src="images/vid1.jpg">
+    <h2>3Mbps streaming(USA)</h2>
+    <p>mp4,120sec</p></a>
+    </li>	
+</ul>
+</div>
+</body>
+</html>

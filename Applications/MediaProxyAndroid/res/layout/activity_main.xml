@@ -1,0 +1,30 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:id="@+id/video_frame"
+    android:background="#000000"    
+    tools:context=".MainActivity" >
+    <view class="com.titikaka.mediaproxyandroid.WebViewCustom"
+        android:id="@+id/webview_main"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+     />
+    <VideoView
+        android:id="@+id/video_main"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+     />
+    <WebView
+        android:id="@+id/webview_option"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+     /> 
+    <TextView
+        android:id="@+id/textview_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+     />
+</FrameLayout>
