@@ -67,6 +67,7 @@ int JS_SimpleHttpClient_SetOwner(JS_HANDLE hClient, JS_HANDLE hOwner, JS_HANDLE 
 int JS_SimpleHttpClient_SetRsp(JS_HANDLE hClient, JS_HTTP_Response	* pRsp);
 int JS_SimpleHttpClient_SetRange(JS_HANDLE hClient, HTTPSIZE_T	nRangeStart, HTTPSIZE_T	 nRangeLen);
 int JS_SimpleHttpClient_SetChunkedBypass(JS_HANDLE hClient, int nEnable);
+int JS_SimpleHttpClient_SetConnectTimeout(JS_HANDLE hClient, int nConnectTimeoutMsec);
 
 int JS_SimpleHttpClient_CheckRetryCount(JS_HANDLE hClient);
 int JS_SimpleHttpClient_IsIdleState(JS_HANDLE hHttpClient);

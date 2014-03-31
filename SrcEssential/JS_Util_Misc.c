@@ -106,9 +106,6 @@ int JS_UTIL_Init(void)
 		if(g_rcGlobal.hConnectionPool==NULL)
 			return -1;
 #endif
-#ifdef JS_CONFIG_USE_ADDON_MEDIAPROXY
-		JS_AutoTrafficControl_Init();
-#endif
 		g_rcGlobal.nInit = JS_UTIL_INIT_ID;
 		return 0;
 	}
@@ -127,9 +124,6 @@ int JS_UTIL_Clear(void)
 #ifdef JS_CONFIG_USE_ADDON_SIMPLEHTTPCLIENT
 		if(g_rcGlobal.hConnectionPool)
 			JS_SimpleHttpClient_DestroyConnectionPool(g_rcGlobal.hConnectionPool);
-#endif
-#ifdef JS_CONFIG_USE_ADDON_MEDIAPROXY
-		JS_AutoTrafficControl_Clear();
 #endif
 
 #if (JS_CONFIG_DEBUGMEMORY==1)

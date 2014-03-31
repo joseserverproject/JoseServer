@@ -69,6 +69,9 @@ typedef struct JS_SimpleHttpClientItemTag
 	int		nRetry;
 	int		nFromIdleItem;
 	int		nZeroRxCnt;
+	////connection monitoring
+	int		nConnectTimeout;
+	UINT64	nConnectTimeStart;
 	////properties
 	int					* pnMaxFd;
 	JS_FD_T				* pOrgRDSet;
@@ -256,6 +259,15 @@ int JS_SimpleHttpClient_GetStatus(JS_HANDLE hHttpClient)
 		return 0;
 }
 
+int JS_SimpleHttpClient_GetConnectTimeout(JS_HANDLE hHttpClient)
+{
+	JS_SimpleHttpClientItem * pItem;
+	pItem = (JS_SimpleHttpClientItem *)hHttpClient;
+	if(pItem) {
+		return pItem->nConnectTimeout;
+	}else
+		return 0;
+}
 //////////////////////////////////////////////////
 ////get tcp socket from item
 JS_SOCKET_T JS_SimpleHttpClient_GetSocket(JS_HANDLE hHttpClient)
@@ -464,6 +476,15 @@ int JS_SimpleHttpClient_SetRsp(JS_HANDLE hClient, JS_HTTP_Response	* pRsp)
 	JS_SimpleHttpClientItem * pItem = (JS_SimpleHttpClientItem *)hClient;
 	if(pItem) {
 		pItem->pRsp = pRsp;
+	}
+	return 0;
+}
+
+int JS_SimpleHttpClient_SetConnectTimeout(JS_HANDLE hClient, int nConnectTimeoutMsec)
+{
+	JS_SimpleHttpClientItem * pItem = (JS_SimpleHttpClientItem *)hClient;
+	if(pItem) {
+		pItem->nConnectTimeout = nConnectTimeoutMsec;
 	}
 	return 0;
 }
@@ -700,6 +721,8 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 		case JS_HTTPCLIENT_STATUS_RESOLVING:
 			{
 				JS_SOCKET_T nOutSock;
+				if(nOldStatus==JS_HTTPCLIENT_STATUS_ZERO)
+					pItem->nConnectTimeStart = GetTickCount();
 				JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_RESOLVING);				
 				////1. check name resolving first
 				if(pItem->nHostIP==0) {
@@ -880,6 +903,16 @@ LABEL_CATCH_ERROR:
 			return nRet;
 		}
 	}
+	////check cont timeout
+	if(pItem->nStatus == JS_HTTPCLIENT_STATUS_RESOLVING || pItem->nStatus == JS_HTTPCLIENT_STATUS_CONNECTING) {
+		 UINT64 nCurTime = GetTickCount();
+		 if(nCurTime-pItem->nConnectTimeStart>pItem->nConnectTimeout) {
+			 DBGPRINT("simple httpclient:connect timeout status=%d,time=%llu,timeout=%d\n",pItem->nStatus, nCurTime-pItem->nConnectTimeStart,pItem->nConnectTimeout);
+			 JS_SimpleHttpClient_ClearItem(pItem,1,0,1,0);
+			 pItem->nError = -1;
+			 return -1;
+		 }
+	}
 	////check the return code
 	if(nOldStatus == JS_HTTPCLIENT_STATUS_CONNECTING && pItem->nStatus > JS_HTTPCLIENT_STATUS_CONNECTING)
 		nRet = JS_HTTP_RET_CONNECTED;
@@ -966,6 +999,8 @@ static int JS_SimpleHttpClient_PhaseChange (void * pOwner, JS_POOL_ITEM_T * pPoo
 			pItem->nRedirectStatus = 0;
 			pItem->nFromIdleItem = 0;
 		}
+		if(pItem->nConnectTimeout==0)
+			pItem->nConnectTimeout=JS_CONFIG_TIMOUT_HTTPCONNECT;
 		pItem->pPoolItem = pPoolItem;
 	}else if(nNewPhase==JS_POOL_PHASE_WARM) {
 		pItem->nFromIdleItem = 0;

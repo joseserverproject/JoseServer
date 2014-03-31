@@ -26,6 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define JS_MEDIAPROXY_H_
 
 #ifdef _JS_SERVERLOOP_H_
+
 JS_EventLoopHandler * JS_MediaProxy_GetEventHandler(void);
 #endif
 JS_HANDLE JS_MediaProxy_Create(JS_HANDLE hJose);

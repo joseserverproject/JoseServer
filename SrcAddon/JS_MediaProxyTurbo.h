@@ -25,6 +25,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef JS_TURBOGATE_H_
 #define JS_TURBOGATE_H_
 
+
+int JS_MediaProxy_CheckNeedTurbo(JS_HTTP_Request * pReq, JS_HTTP_Response * pRsp);
 int JS_TurboGate_Handover(JS_HANDLE hWorkQ, JS_HANDLE hHttpClient, int nConnectionNum, JS_SOCKET_T nInSock, JS_HTTP_Request	* pReq, const char * strRsp, int * pnExitFlag);
 
 #endif /* JS_TURBOGATE_H_ */

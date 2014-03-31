@@ -80,9 +80,6 @@
     <ClInclude Include="..\..\SrcAddon\JS_AjaxHelper.h">
       <Filter>SrcAddon</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\SrcAddon\JS_AutoTrafficControl.h">
-      <Filter>SrcAddon</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\SrcAddon\JS_Cache.h">
       <Filter>SrcAddon</Filter>
     </ClInclude>
@@ -152,9 +149,6 @@
       <Filter>SrcEssential</Filter>
     </ClCompile>
     <ClCompile Include="..\..\SrcAddon\JS_AjaxHelper.c">
-      <Filter>SrcAddon</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\SrcAddon\JS_AutoTrafficControl.c">
       <Filter>SrcAddon</Filter>
     </ClCompile>
     <ClCompile Include="..\..\SrcAddon\JS_Cache.c">

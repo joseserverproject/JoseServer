@@ -28,7 +28,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #ifdef JS_CONFIG_USE_ADDON_MEDIAPROXY
 #include "JS_MediaProxy.h"
-#include "JS_AutoTrafficControl.h"
 #include "JS_MediaProxyTurbo.h"
 #include "JS_DataStructure_Multiqueue.h"
 #endif

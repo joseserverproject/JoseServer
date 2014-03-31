@@ -47,6 +47,7 @@ It can accelerate the speed with adding more connection like flashget app
 #include "JS_AddonInternal.h"
 #endif
 
+
 //////////////////////////////////////////////////////
 ////front gate structure
 typedef struct JS_MediaProxy_SessionItemTag
@@ -425,8 +426,8 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 	}
 #if (JS_CONFIG_USE_TURBOGATE==1)
 	if(JS_UTIL_GetConfig()->nMaxTurboConnection>1 && nClientRet==JS_HTTP_RET_RCVHEADER && pRsp && JS_UTIL_HTTP_GetRspCodeGroup(pRsp) == JS_RSPCODEGROUP_SUCCESS) {
-		int nConnection;
-		if((nConnection=JS_AutoTrafficControl_EstimateBestConnectionNumber(pReq,pRsp))>1) {
+		int nConnection = 1;
+		if((nConnection=JS_MediaProxy_CheckNeedTurbo(pReq,pRsp))>1) {
 			////transfer item to turbogate
 			if(JS_UTIL_HTTPResponse_CompareHeader(pRsp,"Accept-Ranges","none")==0 && JS_ThreadPool_GetWorksNum(pGlobal->hTurboWorkQ)<JS_CONFIG_MAX_TURBOITEM) {
 				strTemp[nBuffSize] = 0;
@@ -438,7 +439,8 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 				pItem->hHttpClient = NULL;
 				nRet = -1;
 				goto LABEL_CATCH_ERROR;
-			}
+			}else
+				nConnection = 1;
 		}
 	}
 #endif
@@ -588,5 +590,4 @@ int JS_MediaProxy_DIRECTAPI_Information (JS_HANDLE hSession)
 		JS_HttpServer_SendQuickErrorRsp(hSession,403,"not found");
 	return 0;
 }
-
 #endif

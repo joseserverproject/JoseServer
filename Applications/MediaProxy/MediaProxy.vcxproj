@@ -84,7 +84,6 @@
     <ClInclude Include="..\..\SrcAddon\JS_AddonExternal.h" />
     <ClInclude Include="..\..\SrcAddon\JS_AddonInternal.h" />
     <ClInclude Include="..\..\SrcAddon\JS_AjaxHelper.h" />
-    <ClInclude Include="..\..\SrcAddon\JS_AutoTrafficControl.h" />
     <ClInclude Include="..\..\SrcAddon\JS_Cache.h" />
     <ClInclude Include="..\..\SrcAddon\JS_DataStructure_Multiqueue.h" />
     <ClInclude Include="..\..\SrcAddon\JS_MediaProxy.h" />
@@ -109,7 +108,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\SrcAddon\JS_AjaxHelper.c" />
-    <ClCompile Include="..\..\SrcAddon\JS_AutoTrafficControl.c" />
     <ClCompile Include="..\..\SrcAddon\JS_Cache.c" />
     <ClCompile Include="..\..\SrcAddon\JS_DataStructure_Multiqueue.c" />
     <ClCompile Include="..\..\SrcAddon\JS_MediaProxy.c" />

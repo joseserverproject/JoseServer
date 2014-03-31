@@ -383,7 +383,7 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 				pItem->nChunked = pRsp->nChunked;
 				////change status 
 				pReq->nQueueStatus = JS_REQSTATUS_WAITCGI;
-				pItem->nConnectionNum = JS_AutoTrafficControl_EstimateBestConnectionNumber(pReq,pRsp);
+				pItem->nConnectionNum = JS_MediaProxy_CheckNeedTurbo(pReq,pRsp);
 				//DBGPRINT("TMP: turbogate get new rsp(%s) contnum=%d\n",pReq->pHost,pItem->nConnectionNum);
 			}
 		}else {
@@ -729,6 +729,44 @@ static int JS_TurboGate_CheckHttpClientSocket(JS_TurboGate_SessionItem * pItem)
 			nRet = 1;
 			break;
 		}
+	}
+	return nRet;
+}
+
+
+int JS_MediaProxy_CheckNeedTurbo(JS_HTTP_Request * pReq, JS_HTTP_Response * pRsp)
+{
+	int nRet = 1;
+	int nURLLen;
+	int nCTLen;
+	const char * strURL;
+	const char * strContentType;
+	int nIsVideo = 0;
+
+	if(pReq==NULL || pRsp==NULL)
+		return nRet;
+	strURL = pReq->pURL;
+	strContentType = JS_UTIL_GetHTTPResponseHeader(pRsp,"Content-Type");
+	if(strURL && strContentType) {
+		nURLLen = strlen(strURL);
+		nCTLen = strlen(strContentType);
+		//DBGPRINT("TMP:Type=%s %llu\n",strContentType,pRsp->nRangeLen);
+		if(nURLLen<10 || nCTLen < 6)
+			return nRet;
+		if(JS_UTIL_StrCmp(strContentType,"video/",6,6,1)==0) {
+			nIsVideo = 1;
+		}
+		if(JS_UTIL_FindPattern(strContentType, "stream", nCTLen, 6, 1)>=0) {
+			int nRet = 0;
+			if(JS_UTIL_FindPattern(strURL, "video", nURLLen, 5, 1)>=0)
+				nIsVideo = 1;
+		}
+	}
+	if(pRsp->nRangeLen>JS_CONFIG_MIN_BIGFILE)
+		return JS_UTIL_GetConfig()->nMaxTurboConnection;
+	if(nIsVideo && pRsp->nRangeLen>JS_CONFIG_MIN_TURBOVIDEOSIZE) {
+		if(pRsp->nChunked==0)
+			return JS_UTIL_GetConfig()->nMaxTurboConnection;
 	}
 	return nRet;
 }
