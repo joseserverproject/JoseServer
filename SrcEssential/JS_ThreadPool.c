@@ -629,3 +629,18 @@ char * JS_ThreadPool_ToStringWorkQueue(JS_HANDLE hWorkQ, int nMaxItem)
 LABEL_CATCH_ERROR:
 	return pJsonBuff;
 }
+
+int JS_ThreadPool_CheckIsFirstWork(JS_HANDLE hWorkQ, JSUINT nWorkID)
+{
+	int nRet = 0;
+	JS_WorkQItem * pItem = NULL;
+	JS_ThreadPool_WorkQ * pWorkQ = (JS_ThreadPool_WorkQ *)hWorkQ;
+	if(pWorkQ==NULL || pWorkQ->hWorkList==NULL)
+		return 0;
+	JS_UTIL_LockMutex(pWorkQ->hLock);
+	pItem = (JS_WorkQItem *)JS_List_GetFront(pWorkQ->hWorkList);
+	if(pItem->nWorkID==nWorkID)
+		nRet = 1;
+	JS_UTIL_UnlockMutex(pWorkQ->hLock);
+	return nRet;
+}

@@ -268,6 +268,16 @@ int JS_SimpleHttpClient_GetConnectTimeout(JS_HANDLE hHttpClient)
 	}else
 		return 0;
 }
+
+UINT JS_SimpleHttpClient_GetHostIP(JS_HANDLE hHttpClient)
+{
+	UINT nRet = 0;
+	JS_SimpleHttpClientItem * pItem;
+	pItem = (JS_SimpleHttpClientItem *)hHttpClient;
+	if(pItem)
+		nRet = pItem->nHostIP;
+	return nRet;
+}
 //////////////////////////////////////////////////
 ////get tcp socket from item
 JS_SOCKET_T JS_SimpleHttpClient_GetSocket(JS_HANDLE hHttpClient)
@@ -464,7 +474,7 @@ int JS_SimpleHttpClient_SetOwner(JS_HANDLE hClient, JS_HANDLE hOwner, JS_HANDLE 
 			JS_UTIL_LockMutex(pItem->hMutexForFDSet);
 			JS_FD_SET(pItem->nSocket,pItem->pOrgRDSet);
 			JS_UTIL_UnlockMutex(pItem->hMutexForFDSet);
-			if(*pnMaxFd < pItem->nSocket)
+			if(((unsigned int)(*pnMaxFd)) < pItem->nSocket)
 				*pnMaxFd = pItem->nSocket;
 		}
 	}

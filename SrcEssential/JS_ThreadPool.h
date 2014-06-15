@@ -58,6 +58,7 @@ void JS_ThreadPool_DestroyWorkQueue(JS_HANDLE hWorkQ);
 JSUINT  JS_ThreadPool_AddWorkQueue(JS_HANDLE hWorkQ, JS_FT_ThreadFunc pFunc, void * pParam, JS_FT_WORKQUEUE_CALLBACK pfEvent);
 JS_HANDLE  JS_ThreadPool_CheckWorkQueue(JS_HANDLE hWorkQ, int nFromWorkThread);
 char * JS_ThreadPool_ToStringWorkQueue(JS_HANDLE hWorkQ, int nMaxItem);
+int JS_ThreadPool_CheckIsFirstWork(JS_HANDLE hWorkQ, JSUINT nWorkID);
 #ifdef __cplusplus
 }
 #endif

@@ -79,7 +79,7 @@ HTTPSIZE_T JS_SimpleHttpClient_GetSentSize(JS_HANDLE hClient);
 JS_HTTP_Response * JS_SimpleHttpClient_GetRsp(JS_HANDLE hHttpClient);
 JS_HTTP_Request  * JS_SimpleHttpClient_GetReq(JS_HANDLE hHttpClient);
 JS_SOCKET_T JS_SimpleHttpClient_GetSocket(JS_HANDLE hHttpClient);
-
+UINT JS_SimpleHttpClient_GetHostIP(JS_HANDLE hHttpClient);
 
 int JS_DNSCache_Resolve(char * strHost, UINT32 * pnIP);
 void JS_DNSCache_ReportError(const char * strHost);

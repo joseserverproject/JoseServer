@@ -33,4 +33,7 @@ JS_HANDLE JS_MediaProxy_Create(JS_HANDLE hJose);
 int JS_MediaProxy_Destroy(JS_HANDLE hProxy);
 int JS_MediaProxy_DIRECTAPI_Information (JS_HANDLE hSession);
 
+int JS_MediaProxy_RemoveStreamInfo(unsigned int nHostIP, const char * strURL);
+int JS_MediaProxy_CheckStreamInfoToAddConnection(unsigned int nHostIP, const char * strURL, int nCurConnection);
+
 #endif /* JS_FRONTGATE_H_ */

@@ -117,7 +117,6 @@ typedef struct JS_HttpServer_SessionItemTag
 typedef struct   JS_HttpServerGlobalTag
 {
 	int nNeedToExit;
-	int nFastIOThreads;
 	JS_HANDLE hDirectAPIMap;
 	JS_HANDLE hDirectAPIWorkQ;
 	JS_HANDLE hMimeMap;

@@ -68,6 +68,12 @@ typedef struct JS_MediaProxy_SessionItemTag
 	int nError;
 }JS_MediaProxy_SessionItem;
 
+typedef struct JS_StreamInfoItemTag {
+	char   strID[JS_CONFIG_MAX_STREAMID];
+	int	   nConnection;
+	char * pURL;
+}JS_StreamInfoItem;
+
 typedef struct JS_MediaStatsTag
 {
 	JSUINT	nAvgRtt;
@@ -78,9 +84,9 @@ typedef struct JS_MediaStatsTag
 typedef struct   JS_MediaProxyGlobalTag
 {
 	int nNeedToExit;
-	int nFastIOThreads;
 	JS_HANDLE hGlobalMutex;
 	JS_HANDLE hTurboWorkQ;
+	JS_HANDLE hStreamInfoCache;
 	JS_HANDLE hJose;
 	JS_MediaStats rcMediaStats;
 }JS_MediaProxyGlobal;
@@ -99,6 +105,11 @@ __inline static JS_MediaProxy_SessionItem * _RET_SESSIONITEM_(JS_POOL_ITEM_T* pI
 static int JS_MediaProxy_SessionItem_PhaseChange (void * pOwner, JS_POOL_ITEM_T * pPoolItem, int nNewPhase);
 static int JS_MediaProxy_HandOverItem(JS_EventLoop * pIO , JS_POOL_ITEM_T * pPoolItem,  JS_SOCKET_T nInSocket, JS_HTTP_Request * pReq, JS_HTTP_Response * pRsp);
 static int JS_MediaProxy_CheckBypassMode(JS_MediaProxy_SessionItem * pItem, JS_HTTP_Request * pReq);
+
+static int JS_Cache_RmCallback (void * pOwner, void * pData);
+static int JS_Cache_HashCallback (void * pOwner, void * pData, void * pParamKey);
+static int JS_Cache_FindCallback (void * pOwner, void * pData, void * pParamKey);
+static int JS_MediaProxy_MakeStreamID(char * pStreamID, unsigned int nHostIP, const char * strURL);
 
 JS_EventLoopHandler * JS_MediaProxy_GetEventHandler(void)
 {
@@ -138,6 +149,13 @@ JS_HANDLE JS_MediaProxy_Create(JS_HANDLE hJose)
 		DBGPRINT("proxyserver: mem error(workq)\n");
 		goto LABEL_CATCH_ERROR;
 	}
+	pMediaProxy->hStreamInfoCache = JS_HashMap_Create(pMediaProxy,JS_Cache_RmCallback,JS_Cache_HashCallback,32,1);
+	if(pMediaProxy->hStreamInfoCache ==NULL) {
+		nRet = -1;
+		DBGPRINT("proxy streaminfo init: mem error(map)\n");
+		goto LABEL_CATCH_ERROR;
+	}
+	JS_SimpleCache_SetHashMap(pMediaProxy->hStreamInfoCache,32,JS_Cache_FindCallback);
 LABEL_CATCH_ERROR:
 	if(nRet<0) {
 		JS_MediaProxy_Destroy(pMediaProxy);
@@ -151,8 +169,6 @@ int JS_MediaProxy_Destroy(JS_HANDLE hProxy)
 {
 	JS_MediaProxyGlobal * pMediaProxy = (JS_MediaProxyGlobal *)hProxy;
 	if(pMediaProxy) {
-		if(pMediaProxy->hGlobalMutex)
-			JS_UTIL_DestroyMutex(pMediaProxy->hGlobalMutex);
 		if(pMediaProxy->hTurboWorkQ) {
 			if(JS_ThreadPool_GetWorksNum(pMediaProxy->hTurboWorkQ)>0) {
 				pMediaProxy->nNeedToExit = 1;
@@ -160,6 +176,13 @@ int JS_MediaProxy_Destroy(JS_HANDLE hProxy)
 			}
 			JS_ThreadPool_DestroyWorkQueue(pMediaProxy->hTurboWorkQ);
 		}
+		if(pMediaProxy->hStreamInfoCache) {
+			JS_UTIL_LockMutex(pMediaProxy->hGlobalMutex);
+			JS_SimpleCache_Destroy(pMediaProxy->hStreamInfoCache);
+			JS_UTIL_UnlockMutex(pMediaProxy->hGlobalMutex);
+		}
+		if(pMediaProxy->hGlobalMutex)
+			JS_UTIL_DestroyMutex(pMediaProxy->hGlobalMutex);
 		JS_FREE(pMediaProxy);
 	}
 	g_pGlobal = NULL;
@@ -590,4 +613,111 @@ int JS_MediaProxy_DIRECTAPI_Information (JS_HANDLE hSession)
 		JS_HttpServer_SendQuickErrorRsp(hSession,403,"not found");
 	return 0;
 }
+
+static int JS_Cache_RmCallback (void * pOwner, void * pData)
+{
+	JS_StreamInfoItem * pItem = (JS_StreamInfoItem *)pData;
+	if(pItem) {
+		if(pItem->pURL)
+			JS_FREE(pItem->pURL);
+		JS_FREE(pItem);
+	}
+	return 0;
+}
+
+static int JS_Cache_HashCallback (void * pOwner, void * pData, void * pParamKey)
+{
+	int nRet = 0;
+	JS_StreamInfoItem * pItem=  (JS_StreamInfoItem *)pData;
+    void * pKey = NULL;
+	if(pItem != NULL) {
+		pKey = pItem->strID;
+	}else if(pParamKey)
+		pKey = pParamKey;
+	if(pKey)
+		return JS_HashMap_CalculateHashValue(pKey,0,1);
+	else
+		return 0;
+}
+
+static int JS_Cache_FindCallback (void * pOwner, void * pData, void * pParamKey)
+{
+	int nRet = 0;
+	char * strCompRes;
+	JS_StreamInfoItem * pItem =  (JS_StreamInfoItem *)pData;
+
+	strCompRes = (char*)pParamKey;
+	if(JS_UTIL_StrCmpRestrict(pItem->strID,strCompRes,0,0,0)==0)
+		nRet = 1;
+	return nRet;
+}
+
+static int JS_MediaProxy_MakeStreamID(char * pStreamID, unsigned int nHostIP, const char * strURL)
+{
+	int nCnt;
+	int nSum = 0;
+	for(nCnt=0; nCnt<512; nCnt++) {
+		if(strURL[nCnt]==0) {
+			break;
+		}
+		nSum += strURL[nCnt];
+	}
+	nSum = nSum>>5;
+	JS_STRPRINTF(pStreamID,JS_CONFIG_MAX_STREAMID,"%u.%u",nHostIP,nSum);
+	return 0;
+}
+
+int JS_MediaProxy_RemoveStreamInfo(unsigned int nHostIP, const char * strURL)
+{
+	int nRet = 0;
+	char strID[JS_CONFIG_MAX_STREAMID];
+
+	JS_MediaProxy_MakeStreamID(strID,nHostIP,strURL);
+	DBGPRINT("JS_MediaProxy_RemoveStreamInfo %s, %u\n",strID,nHostIP);
+	JS_UTIL_LockMutex(g_pGlobal->hGlobalMutex);
+	JS_SimpleCache_RemoveEx(g_pGlobal->hStreamInfoCache,(void*)strID);
+	JS_UTIL_UnlockMutex(g_pGlobal->hGlobalMutex);
+	return nRet;
+}
+
+int JS_MediaProxy_CheckStreamInfoToAddConnection(unsigned int nHostIP, const char * strURL, int nCurConnection)
+{
+	int nRet = 0;
+	JS_StreamInfoItem * pItem;
+	char strID[JS_CONFIG_MAX_STREAMID];
+
+	JS_MediaProxy_MakeStreamID(strID,nHostIP,strURL);
+	JS_UTIL_LockMutex(g_pGlobal->hGlobalMutex);
+	pItem = (JS_StreamInfoItem *)JS_SimpleCache_Find(g_pGlobal->hStreamInfoCache,(void*)strID);
+	if(pItem) {
+		if(pItem->pURL && JS_UTIL_StrCmpRestrict(pItem->pURL,strURL,0,0,0)==0) {
+			nRet = 1;
+		}else {
+			if(nCurConnection<2)
+				nRet = 1;
+			else
+				nRet = 0;
+		}
+	}else {
+		pItem = (JS_StreamInfoItem *)JS_ALLOC(sizeof(JS_StreamInfoItem));
+		if(pItem) {
+			JS_UTIL_StrCopySafe(pItem->strID,JS_CONFIG_MAX_STREAMID,strID,JS_CONFIG_MAX_STREAMID);
+			pItem->nConnection = nCurConnection;
+			pItem->pURL = JS_UTIL_StrDup(strURL);
+			if(JS_SimpleCache_Add(g_pGlobal->hStreamInfoCache,pItem)>=0) {
+				DBGPRINT("JS_MediaProxy_CheckStreamInfoToAddConnection add %s, %u\n",strID,nHostIP);
+				nRet = 1;
+			} else {
+				DBGPRINT("check streaminfo cache: can't push to cache (mem error)\n");
+				nRet = 0;
+			}
+		}else {
+			DBGPRINT("check streaminfo cache: can't make item (mem error)\n");
+			nRet = 0;
+		}
+	}
+	JS_UTIL_UnlockMutex(g_pGlobal->hGlobalMutex);
+	return nRet;
+}
+
 #endif

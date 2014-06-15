@@ -349,6 +349,7 @@ int JS_ReorderingQ_PumpOutComplete(JS_HANDLE hRQ, unsigned int nDataSize)
 	if(pItem->nPumpOutOffset>=pItem->nItemBuffSize){
 		////pop up front this item from queue
 		//DBGPRINT("TMP:nPumpOutOffset=%u, %u %u\n",pItem->nPumpOutOffset, nDataSize, pItem->nItemBuffSize);
+		//DBGPRINT("TMP: multiq total size=%llu\n",pQueue->nTotalLen);
 		if(pItem->nIsLastItem)
 			nRet = JS_RET_REORDERINGQ_EOF;
 		JS_FREE(pItem->pItemBuff);
