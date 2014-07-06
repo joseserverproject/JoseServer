@@ -235,10 +235,8 @@ static int JS_TurboGate_WorkQEvent (JSUINT nWorkID, void * pParam, int nEvent, J
 		}else {
 			DBGPRINT("TMP: turbogate item finished %s\n",pItem->pReq->pURL);
 			//JS_MediaProxy_RemoveStreamInfo(pItem->nHostIP,pItem->pReq->pURL);
-			/*
 			if(JS_UTIL_CheckSocketValidity(pItem->nInSock)>=0)
 				JS_UTIL_SocketClose(pItem->nInSock);
-				*/
 			if(pItem->hReorderingQueue)
 				JS_ReorderingQ_Destroy(pItem->hReorderingQueue);
 			for(nCnt=0; nCnt<JS_CONFIG_MAX_TURBOCONNECTION; nCnt++) {
@@ -704,10 +702,6 @@ static void * JS_TurboGate_WorkFunction (void * pParam)
 			JS_ReorderingQ_Reset(pItem->hReorderingQueue);
 			////clear newreq flag to block rsp->httpclientjob until new request from clientsocket
 			pItem->nGetNewReq = 0;
-			////test
-			if(JS_UTIL_CheckSocketValidity(pItem->nInSock)>=0)
-				JS_UTIL_SocketClose(pItem->nInSock);
-			//pItem->nInSock = 0;
 #ifdef	JS_CONFIG_DUMP_SEND
 			if(pItem->hDumpFile) {
 				JS_UTIL_FileDestroy(&pItem->hDumpFile);
@@ -791,8 +785,8 @@ static int JS_TurboGate_CheckStreamingSpeed(JS_TurboGate_SessionItem * pItem)
 	UINT32 nInSpeed;
 	UINT32 nOutSpeed;
 	JS_ReorderingQ_GetSpeed(pItem->hReorderingQueue,&nInSpeed,&nOutSpeed,NULL);
-	//if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
-	if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection) {
+	if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection && (nInSpeed-(nInSpeed>>4)) < nOutSpeed) {
+	//if(pItem->nConnectionNum<JS_UTIL_GetConfig()->nMaxTurboConnection) {
 		if(nInSpeed<JS_CONFIG_MAX_IN_SPEED) {
 			//if(pItem->pReq && pItem->pReq->pURL && JS_MediaProxy_CheckStreamInfoToAddConnection(pItem->nHostIP,pItem->pReq->pURL,pItem->nConnectionNum))
 			if(pItem->pReq && pItem->pReq->pURL && JS_ThreadPool_CheckIsFirstWork(pItem->hRootWorkQ,pItem->nWorkID))
