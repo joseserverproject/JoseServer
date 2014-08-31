@@ -72,6 +72,9 @@ int JS_SimpleHttpClient_SetConnectTimeout(JS_HANDLE hClient, int nConnectTimeout
 int JS_SimpleHttpClient_CheckRetryCount(JS_HANDLE hClient);
 int JS_SimpleHttpClient_IsIdleState(JS_HANDLE hHttpClient);
 
+////test
+int JS_SimpleHttpClient_GetRcvSize(JS_HANDLE hClient, HTTPSIZE_T * pRcvSize);
+
 int JS_SimpleHttpClient_GetError(JS_HANDLE hHttpClient);
 int JS_SimpleHttpClient_GetStatus(JS_HANDLE hHttpClient);
 HTTPSIZE_T JS_SimpleHttpClient_GetRangeLen(JS_HANDLE hClient);

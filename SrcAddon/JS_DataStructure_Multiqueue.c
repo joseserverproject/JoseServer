@@ -217,7 +217,7 @@ JS_RQ_ITEM_T * JS_ReorderingQ_PumpInPushBack(JS_HANDLE hRQ, int nConnectionID, U
 		return NULL;
 	}
 	if(pQueue->nNum>=pQueue->nMax) {
-		//DBGPRINT("RQ no remain item in Q %d,%d\n",pQueue->nNum,pQueue->nMax);
+		DBGPRINT("RQ no remain item in Q %d,%d\n",pQueue->nNum,pQueue->nMax);
 		return NULL;
 	}
 	if(pQueue->nRemainAllocSize<=0) {

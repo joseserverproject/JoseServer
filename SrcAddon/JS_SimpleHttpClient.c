@@ -82,6 +82,8 @@ typedef struct JS_SimpleHttpClientItemTag
 	int					  nIsReqOwn;
 	HTTPSIZE_T			nRangeStart;
 	HTTPSIZE_T			nRangeLen;
+	HTTPSIZE_T			nRcvSize;
+	int					nRcvCount;
 	JS_HTTP_Request		* pReq;
 	JS_HTTP_Response	* pRsp;
 	JS_HANDLE	hOwner;
@@ -341,6 +343,8 @@ static void JS_SimpleHttpClient_ClearItem(JS_SimpleHttpClientItem * pItem, int n
 	pItem->nReqOffset = 0;
 	pItem->nNeedStop  = 0;
 	pItem->nFromIdleItem = 0;
+	pItem->nRcvCount = 0;
+	pItem->nRcvSize = 0;
 }
 
 void JS_SimpleHttpClient_Reset(JS_HANDLE hHttpClient, int nNeedNewConnection)
@@ -619,6 +623,20 @@ LABEL_CATCH_ERROR:
 	return nRet;
 }
 
+////test
+int JS_SimpleHttpClient_GetRcvSize(JS_HANDLE hClient, HTTPSIZE_T * pRcvSize)
+{
+	int nRet = 0;
+	JS_SimpleHttpClientItem * pItem = (JS_SimpleHttpClientItem *)hClient;
+	if(pItem) {
+		nRet = pItem->nRcvCount;
+		if(pRcvSize) {
+			*pRcvSize = pItem->nRcvSize;
+		}
+	}
+	return nRet;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ////main non blocking function for simple httpclient
 ////read some data and do something according to its state machine
@@ -861,7 +879,12 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 					if(JS_UTIL_HTTP_GetRspCodeGroup(pRsp) > JS_RSPCODEGROUP_REDIRECT) {
 						DBGPRINT("TMP: simple error %d, %s , %s\n",pRsp->nRspCode,pReq->pURL,pItem->pHost);
 						//JS_UTIL_HTTP_PrintRequest(pReq);
-					}//else DBGPRINT("TMP: simple httpclient recv header code=%d\n",pRsp->nRspCode);
+					}else {
+						DBGPRINT("TMP: simple httpclient recv header code=%d\n",pRsp->nRspCode);
+						if(pRsp->nRspCode != 200) {
+							JS_UTIL_HTTP_PrintResponse(pRsp);
+						}
+					}
 					nRspCode = pRsp->nRspCode;
 					////setup rsp queue by transfer method
 					if(pRsp->nChunked) {
@@ -879,15 +902,19 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 		case JS_HTTPCLIENT_STATUS_RCVBODY:
 			{
 				if(JS_UTIL_HTTP_IsHeadMethod(pReq)) {
+					pItem->nRcvCount = 0;
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 					goto LABEL_CATCH_ERROR;
 				}else if(pRsp->nRangeLen<=0 && pRsp->nChunked == 0) {
+					pItem->nRcvCount = 0;
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 					goto LABEL_CATCH_ERROR;
 				}
+				pItem->nRcvCount++;
 				pRspBody = JS_SimpleQ_PreparePumpOut(pRsp->hQueue, nBuffSize, &nAvailableSize, NULL, 0, NULL);
 				if(pRspBody) {
 					//DBGPRINT("TMP: httpclient send body %u\n",nAvailableSize);
+					pItem->nRcvSize += nAvailableSize;
 					memcpy(pDataBuffer,pRspBody,nAvailableSize);
 					*pnBuffSize = nAvailableSize;
 					JS_SimpleQ_FinishPumpOut(pRsp->hQueue,nAvailableSize);	
@@ -895,6 +922,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				if(pReq->nQueueStatus != JS_REQSTATUS_BYPASS && JS_SimpleQ_CheckAllDone(pRsp->hQueue)) {
 					//DBGPRINT("TMP: httpclient send done status=%u,qsize=%llu\n",pReq->nQueueStatus,JS_SimpleQ_GetTotalSent(pRsp->hQueue));
 					nRspCode = 200;
+					pItem->nRcvCount = 0;
 					////status change
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 				}
