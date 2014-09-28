@@ -255,6 +255,7 @@ void JS_UTIL_FileDump(const char * strFileName, char * pData, unsigned int nSize
 void JS_UTIL_SetDbgLevel(int nLevel);
 void JS_UTIL_DebugPrint(const char* format, ... );
 void JS_UTIL_FrequentDebugMessage(int nID, int nFrq, const char* format, ... );
+JS_HANDLE JS_UTIL_OpenDumpFile(const char * strBasePath, const char * strDumpURL, const char * strPrefixInURL, const char * strPostfixInURL);
 ////utils for debug end
 //////////////////////////////////////////////////////////////////////////////////
 

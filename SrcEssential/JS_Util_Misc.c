@@ -813,6 +813,24 @@ void JS_Free(void * pMem)
 }
 
 
+JS_HANDLE JS_UTIL_OpenDumpFile(const char * strBasePath, const char * strDumpURL, const char * strPrefixInURL, const char * strPostfixInURL)
+{
+	JS_HANDLE  hRet = NULL;
+	char strPath[JS_CONFIG_MAX_SMALLPATH];
+	char strName[JS_CONFIG_MAX_SMALLFILENAME];
+	char * pT;
+	int nIndexP = 0;
+	pT = JS_UTIL_ExtractString(strDumpURL, strPrefixInURL, strPostfixInURL, 0, strName, JS_CONFIG_MAX_SMALLFILENAME, 0, &nIndexP);
+	if (pT) {
+		JS_STRPRINTF(strPath, JS_CONFIG_MAX_SMALLPATH, "%s%s.dmp", strBasePath, pT);
+	} else {
+		JS_STRPRINTF(strPath, JS_CONFIG_MAX_SMALLPATH, "%s0000.dmp", strBasePath);
+	}
+
+	hRet = JS_UTIL_FileOpenBinary(strPath, 0, 1);
+	return hRet;
+}
+
 ////time,etc functions start
 /////////////////////////////////////////////////////////////
 

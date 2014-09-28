@@ -881,9 +881,9 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 						//JS_UTIL_HTTP_PrintRequest(pReq);
 					}else {
 						DBGPRINT("TMP: simple httpclient recv header code=%d\n",pRsp->nRspCode);
-						if(pRsp->nRspCode != 200) {
-							JS_UTIL_HTTP_PrintResponse(pRsp);
-						}
+						//if(pRsp->nRspCode != 200) {
+						//	JS_UTIL_HTTP_PrintResponse(pRsp);
+						//}
 					}
 					nRspCode = pRsp->nRspCode;
 					////setup rsp queue by transfer method
@@ -920,9 +920,10 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 					JS_SimpleQ_FinishPumpOut(pRsp->hQueue,nAvailableSize);	
 				}
 				if(pReq->nQueueStatus != JS_REQSTATUS_BYPASS && JS_SimpleQ_CheckAllDone(pRsp->hQueue)) {
-					//DBGPRINT("TMP: httpclient send done status=%u,qsize=%llu\n",pReq->nQueueStatus,JS_SimpleQ_GetTotalSent(pRsp->hQueue));
+					DBGPRINT("TMP: httpclient send done status=%u,qsize=%llu\n",pReq->nQueueStatus,JS_SimpleQ_GetTotalSent(pRsp->hQueue));
 					nRspCode = 200;
 					pItem->nRcvCount = 0;
+					pItem->nRcvSize = 0;
 					////status change
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 				}
