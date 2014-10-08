@@ -491,13 +491,13 @@ static int JS_MediaProxy_TryToSend(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 	nPumpOutResult = 0;
 	pData = JS_SimpleQ_PreparePumpOut(hQueue, 0, &nAvailableSize, NULL, 0, NULL);
 	if(pData) {
-		nSent = JS_UTIL_TCP_SendTimeout(pItem->nInSock,pData,nBuffSize,10);
+		nSent = JS_UTIL_TCP_SendTimeout(pItem->nInSock,pData,nAvailableSize,10);
 		if(nSent>0) {
-			if(nSent<nBuffSize) 
-				DBGPRINT("TMP: proxy send: sendq is not enough nSent=%u,nBuffSize=%u\n",nSent,nBuffSize);
+			if(nSent<nAvailableSize) 
+				DBGPRINT("TMP: proxy send: sendq is not enough nSent=%u,nAvailableSize=%u\n",nSent,nAvailableSize);
 			nPumpOutResult = JS_SimpleQ_FinishPumpOut(hQueue, nSent);
 		}else if(nSent<0) {
-			DBGPRINT("proxy send: exit due to sending error(url=%s,method=%s,rspcnt=%d)\n",pReq->pURL,pReq->strMethod,pItem->nRspCount);
+			DBGPRINT("proxy send: exit due to sending error(url=%s,method=%s,rspcnt=%d,nBuffSize=%u,nAvailableSize=%u)\n",pReq->pURL,pReq->strMethod,pItem->nRspCount,nBuffSize,nAvailableSize);
 			nRet = -1;
 			goto LABEL_CATCH_ERROR;
 		}else {
