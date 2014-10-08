@@ -45,9 +45,9 @@ Media turbo proxy is workque functions for media proxy
 //macro start
 #define JS_MAIN_CONTID	0
 //#define JS_CONFIG_DUMP_SEND	
-#define JS_NOT_USE_KEEPALIVE_IN_TURBO_MODE 1
-#define JS_USE_ADAPTIVESTREAM_TRACE	 1
-#define JS_TEST_NO_REDUCE_CONT	0
+#define JS_NOT_USE_KEEPALIVE_IN_TURBO_MODE	1
+#define JS_USE_ADAPTIVESTREAM_TRACE			1
+#define JS_TEST_NO_REDUCE_CONT				0
 //////////////////////////////////////////////////////
 //local types
 typedef struct JS_TurboGate_HttpConnectionTag
@@ -437,7 +437,7 @@ static int JS_TurboGate_DoConnection(JS_TurboGate_SessionItem * pItem, int nCont
 				pItem->nRspSize = nBuffSize;
 				if(pRsp->nRangeLen>0) {
 					////set size
-					DBGPRINT("(id=%d) TMP: setRange=%llu\n",pItem->nWorkID,pRsp->nRangeLen);
+					DBGPRINT("(id=%d) TMP: set range=%llu\n",pItem->nWorkID,pRsp->nRangeLen);
 					JS_ReorderingQ_SetTotallSize(pItem->hReorderingQueue,pRsp->nRangeLen);
 				}else
 					JS_ReorderingQ_SetTotallSize(pItem->hReorderingQueue,JS_REORDERINGQ_UNKNOWNSIZE);
