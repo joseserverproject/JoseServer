@@ -707,7 +707,6 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 		}
 		if(nRecv>0 && (nOldStatus == JS_HTTPCLIENT_STATUS_RCVHEADER || nOldStatus==JS_HTTPCLIENT_STATUS_RCVBODY)) {
 			//JS_UTIL_FileDump("recvq.txt",strTemp,nRecv);
-			//DBGPRINT("TMP: httpclient rcv sock %u\n",nRecv);
 			nRet = JS_SimpleQ_PushPumpIn(pRsp->hQueue,strTemp,nRecv);
 			if(nRet<0) {
 				DBGPRINT("simple httpclient: mem error (during header recv)\n");
@@ -723,8 +722,10 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 			pReqData = JS_SimpleQ_PreparePumpOut(pReq->hQueue, 0, &nAvailableSize, NULL, 0, NULL);
 			if(pReqData) {
 				nSent = JS_UTIL_TCP_SendTimeout(pItem->nSocket,pReqData,nAvailableSize,20);
-				if(nSent>0)
+				if(nSent>0) {
+					DBGPRINT("TMP: simple httpclient: o sent=%d\n",nSent);
 					JS_SimpleQ_FinishPumpOut(pReq->hQueue,nSent);
+				}
 				else if(nSent<0) {
 					DBGPRINT("simple httpclient: error in sending post data\n");
 					nRet = -1;
@@ -803,7 +804,6 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 						nRet = -1;
 						goto LABEL_CATCH_ERROR;
 					}
-					//DBGPRINT("TMP: hostip=%x, hostport=%d REQ=%s!!\n",pItem->nHostIP, pItem->nHostPort, pItem->pReqString);
 					pItem->nReqOffset = 0;
 					pItem->nReqStrLen = strlen(pItem->pReqString);
 					////send request data with 20ms timeout
@@ -817,9 +817,10 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 						pItem->nReqOffset = nSent;
 						JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_SENDREQ);
 					}else {
-						if(pReq->nQueueStatus == JS_REQSTATUS_BYPASS)
+						if(pReq->nQueueStatus == JS_REQSTATUS_BYPASS) {
 							JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_RCVBODY);
-						else
+							DBGPRINT("TMP: simple httpclient: change RCVBODY status it's bypass-mode %u\n",pItem->nSocket);
+						}else
 							JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_RCVHEADER);
 						JS_UTIL_LockMutex(pItem->hMutexForFDSet);
 						JS_FD_CLR(pItem->nSocket,pItem->pOrgWRSet);	////wrfdset is not needed during rcv header and body
@@ -905,7 +906,7 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 					pItem->nRcvCount = 0;
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 					goto LABEL_CATCH_ERROR;
-				}else if(pRsp->nRangeLen<=0 && pRsp->nChunked == 0) {
+				}else if(pRsp->nRangeLen<=0 && pRsp->nChunked == 0 && pReq->nQueueStatus != JS_REQSTATUS_BYPASS) {
 					pItem->nRcvCount = 0;
 					JS_SimpleHttpClient_StatusChange(pItem,JS_HTTPCLIENT_STATUS_IDLE);
 					goto LABEL_CATCH_ERROR;
@@ -913,7 +914,6 @@ int JS_SimpleHttpClient_DoSomething(JS_HANDLE hClient, JS_HTTP_Response ** ppRsp
 				pItem->nRcvCount++;
 				pRspBody = JS_SimpleQ_PreparePumpOut(pRsp->hQueue, nBuffSize, &nAvailableSize, NULL, 0, NULL);
 				if(pRspBody) {
-					//DBGPRINT("TMP: httpclient send body %u\n",nAvailableSize);
 					pItem->nRcvSize += nAvailableSize;
 					memcpy(pDataBuffer,pRspBody,nAvailableSize);
 					*pnBuffSize = nAvailableSize;
@@ -968,7 +968,7 @@ LABEL_CATCH_ERROR:
 		pItem->nRedirectCnt = 0;
 		pItem->nRetry = 0;
 		if(pItem->pRsp->nKeepAlive==0) {
-			DBGPRINT("httpclient dosomething: keep-alive==0, close connection\n");
+			DBGPRINT("httpclient dosomething: keep-alive==0 %u, close connection\n",pItem->nSocket);
 			JS_SimpleHttpClient_ClearItem(pItem,1,0,1,0);
 		}else
 			JS_SimpleHttpClient_ClearItem(pItem,0,0,1,0);

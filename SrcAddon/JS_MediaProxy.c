@@ -329,14 +329,14 @@ static int JS_MediaProxy_TryToRead(JS_EventLoop * pIO,JS_MediaProxy_SessionItem 
 	if(pRDSet && JS_FD_ISSET(pItem->nInSock,pRDSet)) {
 		nRead=JS_UTIL_TCP_Recv(pItem->nInSock,strTemp,JS_CONFIG_NORMAL_READSIZE,JS_RCV_WITHOUTSELECT);
 		if(nRead<0) {
-			//if(pItem->pReq && pItem->pReq->pURL)
-				//DBGPRINT("TMP: proxy connection off %d %s\n",errno,pReq->pURL);
+			if(pItem->pReq && pItem->pReq->pURL)
+				DBGPRINT("TMP: proxy connection off %d %s\n",errno,pReq->pURL);
 			nRet = -1;
 			goto LABEL_CATCH_ERROR;
 		}else if(nRead==0) {
 			pItem->nZeroRxCnt ++;
 			if(pItem->nZeroRxCnt>JS_CONFIG_MAX_RECVZERORET) {
-				//DBGPRINT("proxy: tcp session is done RST/FIN(status=%d:%d,%s)\n",pReq->nQueueStatus,JS_SimpleHttpClient_GetStatus(pItem->hHttpClient),pReq->pURL);
+				DBGPRINT("proxy: tcp session is done RST/FIN(status=%d:%d,%s)\n",pReq->nQueueStatus,JS_SimpleHttpClient_GetStatus(pItem->hHttpClient),pReq->pURL);
 				nRet = -1;
 				goto LABEL_CATCH_ERROR;
 			}
@@ -530,6 +530,7 @@ static int JS_MediaProxy_CheckBypassMode(JS_MediaProxy_SessionItem * pItem, JS_H
 	////only get and head requests are processed int media filter
 	if(pReq->strMethod[0] != 'G' && pReq->strMethod[0] != 'H') {
 		pReq->nQueueStatus = JS_REQSTATUS_BYPASS;
+		//DBGPRINT("TMP:JS_MediaProxy_CheckBypassMode url=%s\n",pReq->pURL);
 	}
 	return nRet;
 }
@@ -548,7 +549,7 @@ static int JS_MediaProxy_HandOverItem(JS_EventLoop * pIO , JS_POOL_ITEM_T * pPoo
 //	DBGPRINT("TMP: proxy handover: sock=%d\n",nInSocket);
 	if(JS_UTIL_GetConfig()->nUseJoseAgent)
 		JS_UTIL_FixHTTPRequest(pItem->pReq,"User-Agent",JS_CONFIG_USERAGENT,0);
-//	JS_UTIL_FixHTTPRequest(pItem->pReq,"Connection","Close",0);
+	//JS_UTIL_FixHTTPRequest(pItem->pReq,"Connection","Close",0);
 	JS_MediaProxy_CheckBypassMode(pItem,pReq);
 	nRet = JS_MediaProxy_TryToSend(pIO,pItem, NULL,NULL);
 	return nRet;
