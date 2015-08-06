@@ -209,6 +209,7 @@ static void JS_UTIL_HTTP_DeleteRequestEx(JS_HTTP_Request	* pReq, int nResuse)
 		pReq->nQSLog = 0;
 		pReq->pHost = NULL;
 		pReq->nQueueStatus = 0;
+		pReq->nIsMultiPartReq = 0;
 	}else {
 		if(pReq->hQueue)
 			JS_SimpleQ_Destroy(pReq->hQueue);

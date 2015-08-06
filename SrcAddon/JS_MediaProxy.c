@@ -528,10 +528,14 @@ static int JS_MediaProxy_CheckBypassMode(JS_MediaProxy_SessionItem * pItem, JS_H
 {
 	int nRet = 0;
 	////only get and head requests are processed int media filter
-	if(pReq->strMethod[0] != 'G' && pReq->strMethod[0] != 'H') {
-		pReq->nQueueStatus = JS_REQSTATUS_BYPASS;
-		//DBGPRINT("TMP:JS_MediaProxy_CheckBypassMode url=%s\n",pReq->pURL);
+	if (pItem->pReq==NULL || JS_UTIL_HTTP_CheckReqMethod(pItem->pReq, "GET") || JS_UTIL_HTTP_CheckReqMethod(pItem->pReq, "HEAD"))
+		return nRet;
+	if (JS_UTIL_HTTP_CheckReqMethod(pItem->pReq, "POST") && pItem->pReq->nIsMultiPartReq==0) {
+		DBGPRINT("TMP:JS_MediaProxy_CheckBypassMode single part POST url=%s\n",pReq->pURL);
+		return nRet;
 	}
+	DBGPRINT("TMP:JS_MediaProxy_CheckBypassMode method=%s %\n", pReq->pURL);
+	pReq->nQueueStatus = JS_REQSTATUS_BYPASS;
 	return nRet;
 }
 

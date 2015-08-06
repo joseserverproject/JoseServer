@@ -20,12 +20,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -100,7 +102,6 @@
     <ClInclude Include="..\..\SrcEssential\JS_ThreadPool.h" />
     <ClInclude Include="..\..\SrcEssential\JS_Util.h" />
     <ClInclude Include="JS_ControlMain.h" />
-    <ClInclude Include="JS_HTMLView.h" />
     <ClInclude Include="MediaProxy.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -127,7 +128,6 @@
     <ClCompile Include="..\..\SrcEssential\JS_Util_Network.c" />
     <ClCompile Include="..\..\SrcEssential\JS_Util_String.c" />
     <ClCompile Include="JS_ControlMain.cpp" />
-    <ClCompile Include="JS_HTMLView.c" />
     <ClCompile Include="MediaProxy.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -101,9 +101,6 @@
     <ClInclude Include="JS_ControlMain.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="JS_HTMLView.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -170,9 +167,6 @@
       <Filter>SrcAddon</Filter>
     </ClCompile>
     <ClCompile Include="JS_ControlMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JS_HTMLView.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

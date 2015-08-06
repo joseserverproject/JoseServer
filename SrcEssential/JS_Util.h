@@ -90,6 +90,7 @@ typedef  struct JS_HTTP_RequestTag {
 	int		nQSLog;
 	int nConnections;
 	int nExplicitProxyFlag;
+	int nIsMultiPartReq;
 }JS_HTTP_Request;
 
 typedef  struct JS_HTTP_ResponseTag {

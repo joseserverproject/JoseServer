@@ -1361,6 +1361,7 @@ static int JS_HttpServer_TryToRead(JS_EventLoop * pIO,JS_HttpServer_SessionItem 
 					goto LABEL_EXIT_DOREQUEST;
 				}
 				if(JS_UTIL_StrCmp(pContentType, "multipart/form-data",0,0,1)==0) {
+					pReq->nIsMultiPartReq = 1;
 					nRet = JS_HttpServer_PreparePostMultiPart(pIO,pItem,pContentType,strTemp,sizeof(strTemp));
 					if(nRet<0) {
 						nRet = JS_HttpServer_SendErrorPage(pItem,500,strTemp,sizeof(strTemp),1);
@@ -1810,11 +1811,11 @@ static int JS_HttpServer_ClearSessionRef(JS_HttpServer_SessionItem * pSession)
 {
 	int nRet = 0;
 	if(pSession && pSession->pPoolItem) {
-		JS_EventLoop_DelThread(pSession->pPoolItem);
 		JS_UTIL_LockMutex(pSession->pPoolItem->hMutex);
 		if(pSession->pReq)
 			pSession->pReq->nQueueStatus = JS_REQSTATUS_ENDOFACTION;
 		JS_UTIL_UnlockMutex(pSession->pPoolItem->hMutex);
+		JS_EventLoop_DelThread(pSession->pPoolItem);
 	}
 	return nRet;
 }

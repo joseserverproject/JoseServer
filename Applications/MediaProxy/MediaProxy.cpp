@@ -4,11 +4,10 @@
 #include "stdafx.h"
 #include <stdio.h>
 #include <string.h>
-#include <Ole2.h>
 #include <Shldisp.h>
+#include <Shellapi.h>
 #include "MediaProxy.h"
 #include "JS_ControlMain.h"
-#include "JS_HTMLView.h"
 
 #pragma comment(lib, "Shell32")
 #pragma comment(lib, "Ws2_32.lib")
@@ -20,6 +19,10 @@
 #define JS_WIN32_WINNORMAL 0
 
 #define WM_LOADING_TIMER (WM_USER+333)
+#define WM_TRAY_CALLBACK (WM_USER+411)
+
+#define IDM_SETTING		(199)
+
 HANDLE  g_hMutex = NULL;
 class JS_Win32_GlobalData {
 public:
@@ -35,6 +38,11 @@ public:
 HWND g_hwndGlobal = NULL;
 static int JS_Win32_InitProfile(void);
 static int JS_Win32_SaveProfile(void);
+static void JS_Win32_CreateTray();
+static void JS_Win32_ChangeTray();
+static void JS_Win32_DeleteTray();
+static void JS_Win32_PopupMenu(HWND hWnd);
+static void JS_Wind32_PopupSettingHtml();
 BOOL CheckResource(void);
 
 static JS_Win32_GlobalData	g_rcGlobalData;
@@ -46,6 +54,7 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
+
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -64,8 +73,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	g_hMutex = CreateMutex(NULL, FALSE, _T("NODEJSSUCK9988_SoMyP**GOGOMEDIAPROXY")); 
 	if(GetLastError() == ERROR_ALREADY_EXISTS)
 		return FALSE;
-   if (OleInitialize(NULL) != S_OK)
-	   goto LABEL_EXIT_TMAIN;
 
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -86,12 +93,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 		{
 			TranslateMessage(&msg);
+
 			DispatchMessage(&msg);
 		}
 	}
 
 LABEL_EXIT_TMAIN:
-	OleUninitialize();
+	JS_Win32_DeleteTray();
 	if(g_hMutex)
 		CloseHandle(g_hMutex);
 	return (int) msg.wParam;
@@ -185,14 +193,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
    g_rcGlobalData.hWnd = hWnd;
    g_hwndGlobal = hWnd;
-   TCHAR strTemp[2000];
-   sprintf_s(strTemp,2000,_T("http://127.0.0.1:9861/gui.html?app=win32&hit=%u"),GetTickCount());
-   JS_HTMLView_DisplayHTMLPage(hWnd,strTemp);
-
+   JS_Wind32_PopupSettingHtml();
+   JS_Win32_CreateTray();
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
    return TRUE;
+}
+
+static void JS_Wind32_PopupSettingHtml()
+{
+	TCHAR strTemp[2000];
+	sprintf_s(strTemp, 2000, _T("http://127.0.0.1:9861/gui.html?app=win32&hit=%u"), GetTickCount());
+	ShellExecute(NULL, "open", strTemp, NULL, NULL, SW_SHOWMAXIMIZED);
 }
 
 
@@ -204,14 +217,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	if(message>WM_USER)
 		JS_Control_Command(message,wParam,lParam);
-	JS_HTMLView_FilterWindowProc(hWnd,message,wParam,lParam);
 	switch (message)
 	{
 	case WM_CREATE:
 		//JS_Control_SetProxyToMe(1);
 		CheckResource();
 		JS_Control_Create();
-		SetTimer(hWnd,WM_LOADING_TIMER,500,NULL);
+		SetTimer(hWnd,WM_LOADING_TIMER,100,NULL);
+		//PostMessage(hWnd, WM_SHOWWINDOW, SW_HIDE, 0);
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -220,6 +233,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			switch (wmId)
 			{
+			case IDM_SETTING:
+				JS_Wind32_PopupSettingHtml();
+				break;
 			case IDM_EXIT:
 				DestroyWindow(hWnd);
 				break;
@@ -236,19 +252,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		//JS_Control_SetProxyToMe(0);
 		JS_Control_Destroy();
+		JS_Win32_DeleteTray();
 		JS_Win32_SaveProfile();
 		PostQuitMessage(0);
 		break;
 	case WM_KEYUP:
-		if(wParam == VK_F5)
-			JS_HTMLView_DoPageAction(hWnd,WEBPAGE_REFRESH);
 		return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
 	case WM_TIMER:
-		if(JS_ControlMain_CheckBrowserLoading()==1) {
-			JS_HTMLView_DoCallJavascript(hWnd,"js_set_appversion","Win32");
-			KillTimer(hWnd,WM_LOADING_TIMER);
-		}
+		ShowWindow(hWnd, SW_HIDE);
+		KillTimer(hWnd, WM_LOADING_TIMER);
 		break;
 	case  WM_SYSCOMMAND:
 		if(wParam==SC_MINIMIZE) {
@@ -258,6 +271,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}else if(wParam==SC_RESTORE) {
 			g_rcGlobalData.nWinState = JS_WIN32_WINNORMAL;
 		}
+		break;
+	case WM_TRAY_CALLBACK:
+		if (wParam == IDR_MAINFRAME) {
+			switch (lParam) {
+				case WM_RBUTTONUP:
+					JS_Win32_PopupMenu(hWnd);
+					break;
+			}
+		}
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -350,4 +373,55 @@ static int JS_Win32_SaveProfile(void)
 	_stprintf_s(strDefault, _countof(strDefault), _T("%s"), g_rcGlobalData.strDefaultCacheDir);
 	WritePrivateProfileString(_T("MediaProxy"), _T("CacheDir"), strDefault, szCurPath);
 	return 0;
+}
+
+
+static void JS_Win32_CreateTray()
+{
+	NOTIFYICONDATA data;
+	data.cbSize = sizeof(NOTIFYICONDATA);
+	data.hWnd = g_hwndGlobal;
+	data.uID = IDR_MAINFRAME;
+	data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	data.uCallbackMessage = WM_TRAY_CALLBACK;
+	data.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_MEDIAPROXY));
+	strcpy(data.szTip, "Test");
+	Shell_NotifyIcon(NIM_ADD, &data);
+}
+
+static void JS_Win32_ChangeTray()
+{
+	NOTIFYICONDATA data;
+	data.cbSize = sizeof(NOTIFYICONDATA);
+	data.hWnd = g_hwndGlobal;
+	data.uID = IDR_MAINFRAME;
+	data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	data.uCallbackMessage = WM_TRAY_CALLBACK;
+	strcpy(data.szTip, "?");
+	data.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_MEDIAPROXY));
+	Shell_NotifyIcon(NIM_MODIFY, &data);
+
+
+}
+
+static void JS_Win32_DeleteTray()
+{
+	NOTIFYICONDATA data;
+	data.cbSize = sizeof(NOTIFYICONDATA);
+	data.hWnd = g_hwndGlobal;
+	data.uID = IDR_MAINFRAME;
+	Shell_NotifyIcon(NIM_DELETE, &data);
+}
+
+static void JS_Win32_PopupMenu(HWND hWnd)
+{
+	POINT    pt;
+	GetCursorPos(&pt);
+	SetForegroundWindow(hWnd);
+	HMENU hPopupMenu = CreatePopupMenu();
+	AppendMenu(hPopupMenu, MF_ENABLED, IDM_SETTING, _T("Settings"));
+	AppendMenu(hPopupMenu, MF_ENABLED, IDM_EXIT, _T("Exit"));
+	TrackPopupMenu(hPopupMenu, TPM_LEFTALIGN, pt.x, pt.y, 0, hWnd, NULL);
+	PostMessage(hWnd, WM_NULL, 0, 0);
+	//DestroyMenu(hPopupMenu);
 }
